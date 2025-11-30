@@ -3,8 +3,15 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using WebAPI.BusinessLogic.Auth;
+using WebAPI.BusinessLogic.FlashCard;
+using WebAPI.BusinessLogic.FlashCardCollection;
+using WebAPI.BusinessLogic.User;
 using WebAPI.Data;
 using WebAPI.Services;
+using WebAPI.Services.FlashCard;
+using WebAPI.Services.FlashCardCollection;
+using WebAPI.Services.User;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +19,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddCors();
 
 // Configure Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -38,8 +47,17 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Register Services
+// Register Services (Data Access Layer)
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IFlashCardService, FlashCardService>();
+builder.Services.AddScoped<IFlashCardCollectionService, FlashCardCollectionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Register Business Logic Layer
+builder.Services.AddScoped<IUserBusinessLogic, UserBusinessLogic>();
+builder.Services.AddScoped<IFlashCardBusinessLogic, FlashCardBusinessLogic>();
+builder.Services.AddScoped<IFlashCardCollectionBusinessLogic, FlashCardCollectionBusinessLogic>();
+builder.Services.AddScoped<IAuthBusinessLogic, AuthBusinessLogic>();
 
 // Add Controllers
 builder.Services.AddControllers();
@@ -77,6 +95,9 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod()
+.WithOrigins("http://localhost:3000", "https://localhost:3000"));
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

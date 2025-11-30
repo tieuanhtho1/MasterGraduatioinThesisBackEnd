@@ -9,4 +9,7 @@ public class User
     public UserRole Role { get; set; } = UserRole.User;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
+
+    // One user → Many collections
+    public List<FlashCardCollection> FlashCardCollections { get; set; } = new();
 }

@@ -7,29 +7,31 @@ using WebAPI.Data;
 using WebAPI.Models;
 using WebAPI.Models.Auth.DTOs;
 using WebAPI.Models.DTOs;
+using WebAPI.Services.User;
 
 namespace WebAPI.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUserService _userService;
     private readonly IConfiguration _configuration;
 
-    public AuthService(ApplicationDbContext context, IConfiguration configuration)
+    public AuthService(IUserService userService, IConfiguration configuration)
     {
-        _context = context;
+        _userService = userService;
         _configuration = configuration;
     }
 
     public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
     {
         // Check if user already exists
-        if (await _context.Users.AnyAsync(u => u.Username == request.Username || u.Email == request.Email))
+        if (await _userService.UserExistsByUsernameAsync(request.Username) || 
+            await _userService.UserExistsByEmailAsync(request.Email))
         {
             return null;
         }
 
-        var user = new User
+        var user = new Models.User
         {
             Username = request.Username,
             Email = request.Email,
@@ -38,8 +40,7 @@ public class AuthService : IAuthService
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        await _userService.CreateUserAsync(user);
 
         var token = GenerateJwtToken(user);
 
@@ -54,7 +55,7 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+        var user = await _userService.GetUserByUsernameAsync(request.Username);
 
         if (user == null || !VerifyPassword(request.Password, user.PasswordHash))
         {
@@ -62,7 +63,7 @@ public class AuthService : IAuthService
         }
 
         user.LastLoginAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        await _userService.UpdateUserAsync(user);
 
         var token = GenerateJwtToken(user);
 
@@ -75,7 +76,7 @@ public class AuthService : IAuthService
         };
     }
 
-    public string GenerateJwtToken(User user)
+    public string GenerateJwtToken(Models.User user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured");

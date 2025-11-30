@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebAPI.BusinessLogic.Auth;
 using WebAPI.Models.DTOs;
 using WebAPI.Services;
 
@@ -9,11 +10,11 @@ namespace WebAPI.Controllers.Auth;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly IAuthService _authService;
+    private readonly IAuthBusinessLogic _authBusinessLogic;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthBusinessLogic authBusinessLogic)
     {
-        _authService = authService;
+        _authBusinessLogic = authBusinessLogic;
     }
 
     /// <summary>
@@ -29,7 +30,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "All fields are required" });
         }
 
-        var result = await _authService.RegisterAsync(request);
+        var result = await _authBusinessLogic.RegisterAsync(request);
         
         if (result == null)
         {
@@ -50,7 +51,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "Username and password are required" });
         }
 
-        var result = await _authService.LoginAsync(request);
+        var result = await _authBusinessLogic.LoginAsync(request);
         
         if (result == null)
         {

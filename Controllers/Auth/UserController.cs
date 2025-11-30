@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebAPI.BusinessLogic.User;
 using WebAPI.Data;
 using WebAPI.Models;
 
@@ -12,11 +13,11 @@ namespace WebAPI.Controllers;
 [Authorize]
 public class UserController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IUserBusinessLogic _userBusinessLogic;
 
-    public UserController(ApplicationDbContext context)
+    public UserController(IUserBusinessLogic userBusinessLogic)
     {
-        _context = context;
+        _userBusinessLogic = userBusinessLogic;
     }
 
     /// <summary>
@@ -47,19 +48,19 @@ public class UserController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllUsers()
     {
-        var users = await _context.Users
-            .Select(u => new
-            {
-                u.Id,
-                u.Username,
-                u.Email,
-                Role = u.Role.ToString(),
-                u.CreatedAt,
-                u.LastLoginAt
-            })
-            .ToListAsync();
+        var users = await _userBusinessLogic.GetAllUsersAsync();
+        
+        var userDtos = users.Select(u => new
+        {
+            u.Id,
+            u.Username,
+            u.Email,
+            Role = u.Role.ToString(),
+            u.CreatedAt,
+            u.LastLoginAt
+        });
 
-        return Ok(users);
+        return Ok(userDtos);
     }
 
     /// <summary>
@@ -69,25 +70,22 @@ public class UserController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetUserById(int id)
     {
-        var user = await _context.Users
-            .Where(u => u.Id == id)
-            .Select(u => new
-            {
-                u.Id,
-                u.Username,
-                u.Email,
-                Role = u.Role.ToString(),
-                u.CreatedAt,
-                u.LastLoginAt
-            })
-            .FirstOrDefaultAsync();
+        var user = await _userBusinessLogic.GetUserByIdAsync(id);
 
         if (user == null)
         {
             return NotFound(new { message = "User not found" });
         }
 
-        return Ok(user);
+        return Ok(new
+        {
+            user.Id,
+            user.Username,
+            user.Email,
+            Role = user.Role.ToString(),
+            user.CreatedAt,
+            user.LastLoginAt
+        });
     }
 
     /// <summary>
@@ -97,15 +95,12 @@ public class UserController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteUser(int id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var result = await _userBusinessLogic.DeleteUserAsync(id);
 
-        if (user == null)
+        if (!result)
         {
             return NotFound(new { message = "User not found" });
         }
-
-        _context.Users.Remove(user);
-        await _context.SaveChangesAsync();
 
         return Ok(new { message = "User deleted successfully" });
     }
@@ -117,15 +112,12 @@ public class UserController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateUserRole(int id, [FromBody] UpdateRoleRequest request)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _userBusinessLogic.UpdateUserRoleAsync(id, request.Role);
 
         if (user == null)
         {
             return NotFound(new { message = "User not found" });
         }
-
-        user.Role = request.Role;
-        await _context.SaveChangesAsync();
 
         return Ok(new 
         { 

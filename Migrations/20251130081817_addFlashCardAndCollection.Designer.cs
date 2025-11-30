@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebAPI.Data;
 
@@ -11,9 +12,11 @@ using WebAPI.Data;
 namespace WebAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251130081817_addFlashCardAndCollection")]
+    partial class addFlashCardAndCollection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -45,7 +48,7 @@ namespace WebAPI.Migrations
 
                     b.HasIndex("FlashCardCollectionId");
 
-                    b.ToTable("FlashCards");
+                    b.ToTable("FlashCard");
                 });
 
             modelBuilder.Entity("WebAPI.Models.FlashCardCollection", b =>
@@ -67,16 +70,11 @@ namespace WebAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ParentId");
 
-                    b.HasIndex("UserId");
-
-                    b.ToTable("FlashCardCollections");
+                    b.ToTable("FlashCardCollection");
                 });
 
             modelBuilder.Entity("WebAPI.Models.User", b =>
@@ -141,15 +139,7 @@ namespace WebAPI.Migrations
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("WebAPI.Models.User", "User")
-                        .WithMany("FlashCardCollections")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Parent");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("WebAPI.Models.FlashCardCollection", b =>
@@ -157,11 +147,6 @@ namespace WebAPI.Migrations
                     b.Navigation("Children");
 
                     b.Navigation("FlashCards");
-                });
-
-            modelBuilder.Entity("WebAPI.Models.User", b =>
-                {
-                    b.Navigation("FlashCardCollections");
                 });
 #pragma warning restore 612, 618
         }

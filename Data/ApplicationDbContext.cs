@@ -11,6 +11,8 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<User> Users { get; set; }
+    public DbSet<FlashCard> FlashCards { get; set; }
+    public DbSet<FlashCardCollection> FlashCardCollections { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,5 +28,24 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.Role).IsRequired().HasDefaultValue(UserRole.User);
         });
+
+        // User → Collections
+        modelBuilder.Entity<FlashCardCollection>()
+            .HasOne(fc => fc.User)
+            .WithMany(u => u.FlashCardCollections)
+            .HasForeignKey(fc => fc.UserId);
+
+        // Self-referencing (collection → parent/children)
+        modelBuilder.Entity<FlashCardCollection>()
+            .HasOne(fc => fc.Parent)
+            .WithMany(fc => fc.Children)
+            .HasForeignKey(fc => fc.ParentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Collection → FlashCards
+        modelBuilder.Entity<FlashCard>()
+            .HasOne(f => f.FlashCardCollection)
+            .WithMany(fc => fc.FlashCards)
+            .HasForeignKey(f => f.FlashCardCollectionId);
     }
 }
