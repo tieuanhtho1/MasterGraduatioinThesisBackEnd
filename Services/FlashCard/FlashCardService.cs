@@ -36,6 +36,13 @@ public class FlashCardService : IFlashCardService
         return flashCard;
     }
 
+    public async Task<IEnumerable<Models.FlashCard>> CreateFlashCardsAsync(IEnumerable<Models.FlashCard> flashCards)
+    {
+        await _context.FlashCards.AddRangeAsync(flashCards);
+        await _context.SaveChangesAsync();
+        return flashCards;
+    }
+
     public async Task<Models.FlashCard> UpdateFlashCardAsync(Models.FlashCard flashCard)
     {
         _context.FlashCards.Update(flashCard);

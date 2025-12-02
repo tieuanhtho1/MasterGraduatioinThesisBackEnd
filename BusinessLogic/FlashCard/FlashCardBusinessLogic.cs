@@ -34,6 +34,23 @@ public class FlashCardBusinessLogic : IFlashCardBusinessLogic
         return await _flashCardService.CreateFlashCardAsync(flashCard);
     }
 
+    public async Task<IEnumerable<Models.FlashCard>> CreateFlashCardsAsync(IEnumerable<Models.FlashCard> flashCards)
+    {
+        // Business logic: Validate all flashcards
+        var validFlashCards = flashCards.Where(fc => 
+            !string.IsNullOrWhiteSpace(fc.Term) && 
+            !string.IsNullOrWhiteSpace(fc.Definition)).ToList();
+
+        if (!validFlashCards.Any())
+        {
+            return Enumerable.Empty<Models.FlashCard>();
+        }
+
+        // Additional business rules can be added here
+        
+        return await _flashCardService.CreateFlashCardsAsync(validFlashCards);
+    }
+
     public async Task<Models.FlashCard?> UpdateFlashCardAsync(int id, Models.FlashCard flashCard)
     {
         // Business logic: Validate update
@@ -47,6 +64,7 @@ public class FlashCardBusinessLogic : IFlashCardBusinessLogic
         
         existing.Term = flashCard.Term;
         existing.Definition = flashCard.Definition;
+        existing.Score = flashCard.Score;
 
         return await _flashCardService.UpdateFlashCardAsync(existing);
     }

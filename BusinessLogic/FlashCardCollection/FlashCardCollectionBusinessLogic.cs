@@ -21,6 +21,11 @@ public class FlashCardCollectionBusinessLogic : IFlashCardCollectionBusinessLogi
         return await _collectionService.GetCollectionsByUserIdAsync(userId);
     }
 
+    public async Task<IEnumerable<Models.FlashCardCollection>> GetChildrenByParentIdAsync(int parentId)
+    {
+        return await _collectionService.GetChildrenByParentIdAsync(parentId);
+    }
+
     public async Task<Models.FlashCardCollection?> CreateCollectionAsync(Models.FlashCardCollection collection)
     {
         // Business logic: Validate collection data

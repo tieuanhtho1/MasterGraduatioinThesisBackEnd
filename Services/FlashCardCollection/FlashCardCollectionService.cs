@@ -27,6 +27,15 @@ public class FlashCardCollectionService : IFlashCardCollectionService
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<Models.FlashCardCollection>> GetChildrenByParentIdAsync(int parentId)
+    {
+        return await _context.FlashCardCollections
+            .Where(c => c.ParentId == parentId)
+            .Include(c => c.FlashCards)
+            .Include(c => c.Children)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<Models.FlashCardCollection>> GetAllCollectionsAsync()
     {
         return await _context.FlashCardCollections
