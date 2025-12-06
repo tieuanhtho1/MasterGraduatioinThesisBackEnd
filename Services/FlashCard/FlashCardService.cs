@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WebAPI.Data;
+using WebAPI.Helpers;
 
 namespace WebAPI.Services.FlashCard;
 
@@ -22,6 +23,29 @@ public class FlashCardService : IFlashCardService
         return await _context.FlashCards
             .Where(fc => fc.FlashCardCollectionId == collectionId)
             .ToListAsync();
+    }
+
+    public async Task<(IEnumerable<Models.FlashCard> flashCards, int totalCount)> GetFlashCardsByCollectionIdAsync(int collectionId, int pageNumber, int pageSize, string? searchText = null)
+    {
+        var query = _context.FlashCards
+            .Where(fc => fc.FlashCardCollectionId == collectionId);
+
+        // Apply search filter if searchText is provided
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            query = query.Where(fc => 
+                fc.Term.Contains(searchText) || 
+                fc.Definition.Contains(searchText));
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var flashCards = await query
+            .Skip(PaginationHelper.CalculateSkip(pageNumber, pageSize))
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (flashCards, totalCount);
     }
 
     public async Task<IEnumerable<Models.FlashCard>> GetAllFlashCardsAsync()

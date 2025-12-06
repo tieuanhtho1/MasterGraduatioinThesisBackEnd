@@ -42,12 +42,12 @@ public class FlashCardController : ControllerBase
     }
 
     /// <summary>
-    /// Get all flashcards in a collection
+    /// Get all flashcards in a collection with pagination
     /// </summary>
     [HttpGet("collection/{collectionId}")]
-    public async Task<IActionResult> GetFlashCardsByCollection(int collectionId)
+    public async Task<IActionResult> GetFlashCardsByCollection(int collectionId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string? searchText = null)
     {
-        var flashCards = await _flashCardBusinessLogic.GetFlashCardsByCollectionIdAsync(collectionId);
+        var (flashCards, totalCount, totalPages) = await _flashCardBusinessLogic.GetFlashCardsByCollectionIdAsync(collectionId, pageNumber, pageSize, searchText);
         
         var response = flashCards.Select(fc => new FlashCardResponse
         {
@@ -58,7 +58,15 @@ public class FlashCardController : ControllerBase
             FlashCardCollectionId = fc.FlashCardCollectionId
         });
 
-        return Ok(response);
+        return Ok(new
+        {
+            flashCards = response,
+            pageNumber,
+            pageSize,
+            totalCount,
+            totalPages,
+            searchText
+        });
     }
 
     /// <summary>
@@ -105,7 +113,7 @@ public class FlashCardController : ControllerBase
     }
 
     /// <summary>
-    /// Create multiple flashcards at once
+    /// Create or update multiple flashcards at once
     /// </summary>
     [HttpPost("bulk")]
     public async Task<IActionResult> CreateFlashCardsBulk([FromBody] BulkCreateFlashCardsRequest request)
@@ -120,19 +128,13 @@ public class FlashCardController : ControllerBase
             return BadRequest(new { message = "At least one flashcard is required" });
         }
 
-        var flashCards = request.FlashCards.Select(fc => new Models.FlashCard
-        {
-            Term = fc.Term,
-            Definition = fc.Definition,
-            Score = fc.Score,
-            FlashCardCollectionId = request.FlashCardCollectionId
-        });
-
-        var results = await _flashCardBusinessLogic.CreateFlashCardsAsync(flashCards);
+        var (results, createdCount, updatedCount) = await _flashCardBusinessLogic.BulkCreateOrUpdateFlashCardsAsync(
+            request.FlashCardCollectionId, 
+            request.FlashCards);
         
         if (!results.Any())
         {
-            return BadRequest(new { message = "Failed to create flashcards. Ensure all flashcards have valid Term and Definition" });
+            return BadRequest(new { message = "Failed to create or update flashcards. Ensure all flashcards have valid Term and Definition" });
         }
 
         var response = results.Select(fc => new FlashCardResponse
@@ -146,7 +148,7 @@ public class FlashCardController : ControllerBase
 
         return Ok(new 
         { 
-            message = $"Successfully created {results.Count()} flashcard(s)",
+            message = $"Successfully created {createdCount} and updated {updatedCount} flashcard(s)",
             flashCards = response 
         });
     }
@@ -202,5 +204,31 @@ public class FlashCardController : ControllerBase
         }
 
         return Ok(new { message = "FlashCard deleted successfully" });
+    }
+
+    /// <summary>
+    /// Delete multiple flashcards at once
+    /// </summary>
+    [HttpDelete("bulk")]
+    public async Task<IActionResult> DeleteFlashCardsBulk([FromBody] BulkDeleteFlashCardsRequest request)
+    {
+        if (request.FlashCardIds == null || !request.FlashCardIds.Any())
+        {
+            return BadRequest(new { message = "At least one flashcard ID is required" });
+        }
+
+        var (deletedCount, failedCount) = await _flashCardBusinessLogic.BulkDeleteFlashCardsAsync(request.FlashCardIds);
+
+        if (deletedCount == 0)
+        {
+            return NotFound(new { message = "No flashcards were deleted. All IDs may be invalid." });
+        }
+
+        return Ok(new
+        {
+            message = $"Successfully deleted {deletedCount} flashcard(s)",
+            deletedCount,
+            failedCount
+        });
     }
 }
