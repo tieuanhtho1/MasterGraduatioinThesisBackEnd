@@ -40,10 +40,13 @@ public class FlashCardService : IFlashCardService
 
         var totalCount = await query.CountAsync();
 
-        var flashCards = await query
-            .Skip(PaginationHelper.CalculateSkip(pageNumber, pageSize))
-            .Take(pageSize)
-            .ToListAsync();
+        // Return all results if pageSize is -1, otherwise apply pagination
+        var flashCards = pageSize == -1
+            ? await query.ToListAsync()
+            : await query
+                .Skip(PaginationHelper.CalculateSkip(pageNumber, pageSize))
+                .Take(pageSize)
+                .ToListAsync();
 
         return (flashCards, totalCount);
     }

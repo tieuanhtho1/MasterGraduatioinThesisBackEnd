@@ -7,6 +7,7 @@ namespace WebAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class FlashCardController : ControllerBase
 {
     private readonly IFlashCardBusinessLogic _flashCardBusinessLogic;

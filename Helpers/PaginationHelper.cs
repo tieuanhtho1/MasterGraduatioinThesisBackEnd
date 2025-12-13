@@ -9,7 +9,7 @@ public static class PaginationHelper
     public static (int pageNumber, int pageSize) ValidatePaginationParameters(int pageNumber, int pageSize)
     {
         if (pageNumber < 1) pageNumber = DefaultPageNumber;
-        if (pageSize < 1) pageSize = DefaultPageSize;
+        if (pageSize < 1 && pageSize != -1) pageSize = DefaultPageSize;
         if (pageSize > MaxPageSize) pageSize = MaxPageSize;
 
         return (pageNumber, pageSize);

@@ -60,12 +60,24 @@ public class FlashCardCollectionService : IFlashCardCollectionService
     public async Task<bool> DeleteCollectionAsync(int id)
     {
         var collection = await _context.FlashCardCollections.FindAsync(id);
-        if (collection == null)
+        var childCollections = await _context.FlashCardCollections
+                        .Where(c => c.ParentId == id)
+                        .ToListAsync();
+        if (collection == null || childCollections == null)
         {
             return false;
         }
 
+        if (childCollections.Count > 0)
+        {
+            foreach (var childCollection in childCollections)
+            {
+                childCollection.ParentId = collection.ParentId;
+            }
+        }
+
         _context.FlashCardCollections.Remove(collection);
+
         await _context.SaveChangesAsync();
         return true;
     }

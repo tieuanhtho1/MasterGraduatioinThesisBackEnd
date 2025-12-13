@@ -29,7 +29,7 @@ public class FlashCardBusinessLogic : IFlashCardBusinessLogic
         (pageNumber, pageSize) = PaginationHelper.ValidatePaginationParameters(pageNumber, pageSize);
 
         var (flashCards, totalCount) = await _flashCardService.GetFlashCardsByCollectionIdAsync(collectionId, pageNumber, pageSize, searchText);
-        var totalPages = PaginationHelper.CalculateTotalPages(totalCount, pageSize);
+        var totalPages = pageSize == -1 ? 1 : PaginationHelper.CalculateTotalPages(totalCount, pageSize);
 
         return (flashCards, totalCount, totalPages);
     }

@@ -35,7 +35,7 @@ public class FlashCardCollectionBusinessLogic : IFlashCardCollectionBusinessLogi
         }
 
         // Additional business rules can be added here
-        
+        collection.ParentId = (collection.ParentId == 0) ? null : collection.ParentId;
         return await _collectionService.CreateCollectionAsync(collection);
     }
 

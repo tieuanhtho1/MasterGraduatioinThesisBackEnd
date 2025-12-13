@@ -46,6 +46,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<FlashCard>()
             .HasOne(f => f.FlashCardCollection)
             .WithMany(fc => fc.FlashCards)
-            .HasForeignKey(f => f.FlashCardCollectionId);
+            .HasForeignKey(f => f.FlashCardCollectionId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
