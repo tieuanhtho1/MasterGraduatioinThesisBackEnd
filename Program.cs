@@ -52,12 +52,14 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFlashCardService, FlashCardService>();
 builder.Services.AddScoped<IFlashCardCollectionService, FlashCardCollectionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<WebAPI.Services.LearnSession.ILearnSessionService, WebAPI.Services.LearnSession.LearnSessionService>();
 
 // Register Business Logic Layer
 builder.Services.AddScoped<IUserBusinessLogic, UserBusinessLogic>();
 builder.Services.AddScoped<IFlashCardBusinessLogic, FlashCardBusinessLogic>();
 builder.Services.AddScoped<IFlashCardCollectionBusinessLogic, FlashCardCollectionBusinessLogic>();
 builder.Services.AddScoped<IAuthBusinessLogic, AuthBusinessLogic>();
+builder.Services.AddScoped<WebAPI.BusinessLogic.LearnSession.ILearnSessionBusinessLogic, WebAPI.BusinessLogic.LearnSession.LearnSessionBusinessLogic>();
 
 // Add Controllers
 builder.Services.AddControllers();
