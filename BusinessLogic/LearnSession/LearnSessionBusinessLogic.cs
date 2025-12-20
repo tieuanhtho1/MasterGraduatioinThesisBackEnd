@@ -35,63 +35,101 @@ public class LearnSessionBusinessLogic : ILearnSessionBusinessLogic
         return SelectWeightedRandomFlashCards(allFlashCards, count);
     }
 
-    public async Task<bool> UpdateFlashCardScoresAsync(Dictionary<int, int> scoreModifications)
+    public async Task<bool> UpdateFlashCardScoresAsync(List<Models.DTOs.LearnSession.FlashCardScoreUpdate> scoreUpdates)
     {
-        if (scoreModifications == null || !scoreModifications.Any())
+        if (scoreUpdates == null || !scoreUpdates.Any())
         {
             return false;
         }
 
-        return await _learnSessionService.UpdateFlashCardScoresAsync(scoreModifications);
+        return await _learnSessionService.UpdateFlashCardScoresAsync(scoreUpdates);
     }
 
-    private List<Models.FlashCard> SelectWeightedRandomFlashCards(List<Models.FlashCard> flashCards, int count)
-    {
-        if (flashCards.Count <= count)
-        {
-            return flashCards;
-        }
+    private static readonly Random _random = new Random();
 
-        // Calculate weights based on score (lower score = higher weight)
-        // Using inverse scoring: weight = maxScore - score + 1
-        var maxScore = flashCards.Max(fc => fc.Score);
-        var weightedCards = flashCards.Select(fc => new
+
+    private List<Models.FlashCard> SelectWeightedRandomFlashCards(
+        List<Models.FlashCard> flashCards,
+        int count)
+    {
+        // =========================
+        // 🔧 TUNING PARAMETERS
+        // =========================
+
+        const double NEW_CARD_EFFECTIVE_SCORE = -6.0;
+        const double WEIGHT_STRENGTH_MULTIPLIER = 1.0; // >1 = harsher, <1 = gentler
+
+        // =========================
+        // 🛡️ GUARDS
+        // =========================
+
+        if (flashCards == null || flashCards.Count == 0)
+            return new List<Models.FlashCard>();
+
+        if (flashCards.Count <= count)
+            return flashCards;
+
+        // =========================
+        // 📊 STEP 1: Effective Score
+        // =========================
+
+        var cards = flashCards.Select(fc =>
         {
-            FlashCard = fc,
-            Weight = maxScore - fc.Score + 1
+            double effectiveScore;
+
+            if (fc.TimesLearned == 0)
+            {
+                // Never-learned cards
+                effectiveScore = NEW_CARD_EFFECTIVE_SCORE;
+            }
+            else
+            {
+                effectiveScore = (double)fc.Score / fc.TimesLearned;
+            }
+
+            return new
+            {
+                FlashCard = fc,
+                EffectiveScore = effectiveScore
+            };
         }).ToList();
 
-        var totalWeight = weightedCards.Sum(wc => wc.Weight);
-        var random = new Random();
-        var selectedCards = new List<Models.FlashCard>();
-        var remainingCards = new List<Models.FlashCard>(flashCards);
+        // =========================
+        // ⚖️ STEP 2: Score → Weight
+        // =========================
 
-        for (int i = 0; i < count && remainingCards.Any(); i++)
+        var weightedCards = cards.Select(c => new
         {
-            var randomValue = random.Next(0, totalWeight);
-            var cumulativeWeight = 0;
-            Models.FlashCard? selectedCard = null;
+            c.FlashCard,
+            Weight = Math.Exp(-c.EffectiveScore * WEIGHT_STRENGTH_MULTIPLIER)
+        }).ToList();
 
-            foreach (var card in remainingCards)
+        var selectedCards = new List<Models.FlashCard>();
+        var remaining = weightedCards.ToList();
+
+        // =========================
+        // 🎲 STEP 3: Weighted Pick
+        // =========================
+
+        for (int i = 0; i < count && remaining.Any(); i++)
+        {
+            var totalWeight = remaining.Sum(c => c.Weight);
+            var roll = _random.NextDouble() * totalWeight;
+
+            double cumulative = 0;
+
+            foreach (var card in remaining)
             {
-                var weight = maxScore - card.Score + 1;
-                cumulativeWeight += weight;
-
-                if (randomValue < cumulativeWeight)
+                cumulative += card.Weight;
+                if (roll <= cumulative)
                 {
-                    selectedCard = card;
+                    selectedCards.Add(card.FlashCard);
+                    remaining.Remove(card);
                     break;
                 }
             }
-
-            if (selectedCard != null)
-            {
-                selectedCards.Add(selectedCard);
-                remainingCards.Remove(selectedCard);
-                totalWeight -= (maxScore - selectedCard.Score + 1);
-            }
         }
-
         return selectedCards;
     }
 }
+

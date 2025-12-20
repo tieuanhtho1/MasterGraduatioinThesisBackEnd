@@ -8,6 +8,8 @@ namespace WebAPI.Models
         public string Definition { get; set; } = string.Empty;
         public int Score { get; set; }
 
+        public int TimesLearned { get; set; }
+
         // Foreign key to the collection it belongs to
         public int FlashCardCollectionId { get; set; }
         public FlashCardCollection FlashCardCollection { get; set; } = null!;

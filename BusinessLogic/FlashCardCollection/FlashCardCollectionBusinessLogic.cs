@@ -70,4 +70,9 @@ public class FlashCardCollectionBusinessLogic : IFlashCardCollectionBusinessLogi
         
         return await _collectionService.DeleteCollectionAsync(id);
     }
+
+    public async Task<int> GetTotalFlashCardCountAsync(int collectionId)
+    {
+        return await _collectionService.GetTotalFlashCardCountAsync(collectionId);
+    }
 }

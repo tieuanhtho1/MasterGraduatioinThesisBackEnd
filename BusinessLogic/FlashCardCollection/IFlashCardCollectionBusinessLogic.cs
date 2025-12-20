@@ -10,4 +10,5 @@ public interface IFlashCardCollectionBusinessLogic
     Task<Models.FlashCardCollection?> CreateCollectionAsync(Models.FlashCardCollection collection);
     Task<Models.FlashCardCollection?> UpdateCollectionAsync(int id, Models.FlashCardCollection collection);
     Task<bool> DeleteCollectionAsync(int id);
+    Task<int> GetTotalFlashCardCountAsync(int collectionId);
 }

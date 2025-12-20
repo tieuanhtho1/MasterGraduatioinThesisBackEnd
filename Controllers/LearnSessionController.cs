@@ -79,13 +79,15 @@ public class LearnSessionController : ControllerBase
             return BadRequest(new { message = "All flashcard IDs must be valid" });
         }
 
-        // Convert to dictionary
-        var scoreModifications = request.ScoreUpdates.ToDictionary(
-            su => su.FlashCardId,
-            su => su.ScoreModification
-        );
+        // Convert to FlashCardScoreUpdate DTOs
+        var scoreUpdates = request.ScoreUpdates.Select(su => new FlashCardScoreUpdate
+        {
+            FlashCardId = su.FlashCardId,
+            ScoreModification = su.ScoreModification,
+            TimesLearned = su.TimesLearned
+        }).ToList();
 
-        var result = await _learnSessionBusinessLogic.UpdateFlashCardScoresAsync(scoreModifications);
+        var result = await _learnSessionBusinessLogic.UpdateFlashCardScoresAsync(scoreUpdates);
 
         if (!result)
         {

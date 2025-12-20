@@ -30,6 +30,8 @@ public class FlashCardCollectionController : ControllerBase
             return NotFound(new { message = "Collection not found" });
         }
 
+        var totalFlashCardCount = await _collectionBusinessLogic.GetTotalFlashCardCountAsync(id);
+
         var response = new FlashCardCollectionResponse
         {
             Id = collection.Id,
@@ -37,7 +39,7 @@ public class FlashCardCollectionController : ControllerBase
             ParentId = collection.ParentId,
             Title = collection.Title,
             Description = collection.Description,
-            FlashCardCount = collection.FlashCards?.Count ?? 0,
+            FlashCardCount = totalFlashCardCount,
             ChildrenCount = collection.Children?.Count ?? 0
         };
 
@@ -52,18 +54,23 @@ public class FlashCardCollectionController : ControllerBase
     {
         var collections = await _collectionBusinessLogic.GetCollectionsByUserIdAsync(userId);
         
-        var response = collections.Select(c => new FlashCardCollectionResponse
+        var responseList = new List<FlashCardCollectionResponse>();
+        foreach (var c in collections)
         {
-            Id = c.Id,
-            UserId = c.UserId,
-            ParentId = c.ParentId,
-            Title = c.Title,
-            Description = c.Description,
-            FlashCardCount = c.FlashCards?.Count ?? 0,
-            ChildrenCount = c.Children?.Count ?? 0
-        });
+            var totalFlashCardCount = await _collectionBusinessLogic.GetTotalFlashCardCountAsync(c.Id);
+            responseList.Add(new FlashCardCollectionResponse
+            {
+                Id = c.Id,
+                UserId = c.UserId,
+                ParentId = c.ParentId,
+                Title = c.Title,
+                Description = c.Description,
+                FlashCardCount = totalFlashCardCount,
+                ChildrenCount = c.Children?.Count ?? 0
+            });
+        }
 
-        return Ok(response);
+        return Ok(responseList);
     }
 
     /// <summary>
@@ -74,18 +81,23 @@ public class FlashCardCollectionController : ControllerBase
     {
         var children = await _collectionBusinessLogic.GetChildrenByParentIdAsync(id);
         
-        var response = children.Select(c => new FlashCardCollectionResponse
+        var responseList = new List<FlashCardCollectionResponse>();
+        foreach (var c in children)
         {
-            Id = c.Id,
-            UserId = c.UserId,
-            ParentId = c.ParentId,
-            Title = c.Title,
-            Description = c.Description,
-            FlashCardCount = c.FlashCards?.Count ?? 0,
-            ChildrenCount = c.Children?.Count ?? 0
-        });
+            var totalFlashCardCount = await _collectionBusinessLogic.GetTotalFlashCardCountAsync(c.Id);
+            responseList.Add(new FlashCardCollectionResponse
+            {
+                Id = c.Id,
+                UserId = c.UserId,
+                ParentId = c.ParentId,
+                Title = c.Title,
+                Description = c.Description,
+                FlashCardCount = totalFlashCardCount,
+                ChildrenCount = c.Children?.Count ?? 0
+            });
+        }
 
-        return Ok(response);
+        return Ok(responseList);
     }
 
     /// <summary>
@@ -119,6 +131,8 @@ public class FlashCardCollectionController : ControllerBase
             return BadRequest(new { message = "Failed to create collection" });
         }
 
+        var totalFlashCardCount = await _collectionBusinessLogic.GetTotalFlashCardCountAsync(result.Id);
+
         var response = new FlashCardCollectionResponse
         {
             Id = result.Id,
@@ -126,7 +140,7 @@ public class FlashCardCollectionController : ControllerBase
             ParentId = result.ParentId,
             Title = result.Title,
             Description = result.Description,
-            FlashCardCount = result.FlashCards?.Count ?? 0,
+            FlashCardCount = totalFlashCardCount,
             ChildrenCount = result.Children?.Count ?? 0
         };
 
@@ -158,6 +172,8 @@ public class FlashCardCollectionController : ControllerBase
             return NotFound(new { message = "Collection not found" });
         }
 
+        var totalFlashCardCount = await _collectionBusinessLogic.GetTotalFlashCardCountAsync(result.Id);
+
         var response = new FlashCardCollectionResponse
         {
             Id = result.Id,
@@ -165,7 +181,7 @@ public class FlashCardCollectionController : ControllerBase
             ParentId = result.ParentId,
             Title = result.Title,
             Description = result.Description,
-            FlashCardCount = result.FlashCards?.Count ?? 0,
+            FlashCardCount = totalFlashCardCount,
             ChildrenCount = result.Children?.Count ?? 0
         };
 

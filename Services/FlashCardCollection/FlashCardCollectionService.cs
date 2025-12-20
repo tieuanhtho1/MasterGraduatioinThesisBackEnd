@@ -81,4 +81,41 @@ public class FlashCardCollectionService : IFlashCardCollectionService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<int> GetTotalFlashCardCountAsync(int collectionId)
+    {
+        // Get all descendant collection IDs (including the root collection)
+        var collectionIds = await GetAllDescendantCollectionIdsAsync(collectionId);
+
+        // Count all flashcards from these collections in a single query
+        var count = await _context.FlashCards
+            .Where(fc => collectionIds.Contains(fc.FlashCardCollectionId))
+            .CountAsync();
+
+        return count;
+    }
+
+    private async Task<List<int>> GetAllDescendantCollectionIdsAsync(int collectionId)
+    {
+        var result = new List<int> { collectionId };
+        var queue = new Queue<int>();
+        queue.Enqueue(collectionId);
+
+        while (queue.Count > 0)
+        {
+            var currentId = queue.Dequeue();
+            var children = await _context.FlashCardCollections
+                .Where(c => c.ParentId == currentId)
+                .Select(c => c.Id)
+                .ToListAsync();
+
+            foreach (var childId in children)
+            {
+                result.Add(childId);
+                queue.Enqueue(childId);
+            }
+        }
+
+        return result;
+    }
 }

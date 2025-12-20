@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WebAPI.Data;
+using WebAPI.Models.DTOs.LearnSession;
 
 namespace WebAPI.Services.LearnSession;
 
@@ -25,14 +26,15 @@ public class LearnSessionService : ILearnSessionService
         return allFlashCards;
     }
 
-    public async Task<bool> UpdateFlashCardScoresAsync(Dictionary<int, int> scoreModifications)
+    public async Task<bool> UpdateFlashCardScoresAsync(List<FlashCardScoreUpdate> scoreUpdates)
     {
-        foreach (var modification in scoreModifications)
+        foreach (var update in scoreUpdates)
         {
-            var flashCard = await _context.FlashCards.FindAsync(modification.Key);
+            var flashCard = await _context.FlashCards.FindAsync(update.FlashCardId);
             if (flashCard != null)
             {
-                flashCard.Score += modification.Value;
+                flashCard.Score += update.ScoreModification;
+                flashCard.TimesLearned += update.TimesLearned;
             }
         }
 

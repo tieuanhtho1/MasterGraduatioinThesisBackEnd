@@ -11,4 +11,5 @@ public interface IFlashCardCollectionService
     Task<Models.FlashCardCollection> CreateCollectionAsync(Models.FlashCardCollection collection);
     Task<Models.FlashCardCollection> UpdateCollectionAsync(Models.FlashCardCollection collection);
     Task<bool> DeleteCollectionAsync(int id);
+    Task<int> GetTotalFlashCardCountAsync(int collectionId);
 }
