@@ -5,7 +5,7 @@ public class AnalyticsResponse
     public OverviewStats Overview { get; set; } = new();
     public LearningProgress LearningProgress { get; set; } = new();
     public List<CollectionStats> TopCollections { get; set; } = new();
-    public ScoreDistribution ScoreDistribution { get; set; } = new();
+    public AverageScoreDistribution AverageScoreDistribution { get; set; } = new();
 }
 
 public class OverviewStats
@@ -36,11 +36,11 @@ public class CollectionStats
     public double CompletionRate { get; set; }
 }
 
-public class ScoreDistribution
+public class AverageScoreDistribution
 {
-    public int Score0To20 { get; set; }
-    public int Score21To40 { get; set; }
-    public int Score41To60 { get; set; }
-    public int Score61To80 { get; set; }
-    public int Score81To100 { get; set; }
+    public int ScoreMinus5ToMinus3 { get; set; }
+    public int ScoreMinus3ToMinus1 { get; set; }
+    public int ScoreMinus1To1 { get; set; }
+    public int Score1To3 { get; set; }
+    public int Score3To5 { get; set; }
 }

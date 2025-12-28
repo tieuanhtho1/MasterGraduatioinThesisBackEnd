@@ -9,7 +9,7 @@ public class CollectionAnalyticsResponse
     public int FlashCardsLearned { get; set; }
     public double AverageScore { get; set; } // Score/TimesLearned for learned cards
     public double CompletionRate { get; set; }
-    public ScoreDistribution ScoreDistribution { get; set; } = new();
+    public AverageScoreDistribution AverageScoreDistribution { get; set; } = new();
     public List<FlashCardPerformance> TopPerformingCards { get; set; } = new();
     public List<FlashCardPerformance> CardsNeedingReview { get; set; } = new();
 }

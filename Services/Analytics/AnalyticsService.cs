@@ -20,7 +20,7 @@ public class AnalyticsService : IAnalyticsService
             Overview = await GetOverviewStatsAsync(userId),
             LearningProgress = await GetLearningProgressAsync(userId),
             TopCollections = await GetTopCollectionsAsync(userId, 5),
-            ScoreDistribution = await GetScoreDistributionAsync(userId)
+            AverageScoreDistribution = await GetAverageScoreDistributionAsync(userId)
         };
 
         return analytics;
@@ -54,7 +54,7 @@ public class AnalyticsService : IAnalyticsService
             FlashCardsLearned = cardsLearned,
             AverageScore = Math.Round(avgScore, 2),
             CompletionRate = totalCards > 0 ? Math.Round((double)cardsLearned / totalCards * 100, 2) : 0,
-            ScoreDistribution = GetScoreDistributionForCards(flashCards),
+            AverageScoreDistribution = GetAverageScoreDistributionForCards(flashCards),
             TopPerformingCards = flashCards
                 .OrderByDescending(f => f.Score)
                 .ThenByDescending(f => f.TimesLearned)
@@ -116,9 +116,9 @@ public class AnalyticsService : IAnalyticsService
 
         var totalCards = flashCards.Count;
         var cardsToReview = flashCards.Count(f => f.TimesLearned == 0);
-        var cardsMastered = flashCards.Count(f => f.Score >= 80);
-        var cardsInProgress = flashCards.Count(f => f.Score >= 40 && f.Score < 80);
-        var cardsNeedWork = flashCards.Count(f => f.Score < 40 && f.TimesLearned > 0);
+        var cardsMastered = flashCards.Count(f => f.TimesLearned > 0 && (double)f.Score / f.TimesLearned >= 3);
+        var cardsInProgress = flashCards.Count(f => f.TimesLearned > 0 && (double)f.Score / f.TimesLearned >= 0 && (double)f.Score / f.TimesLearned < 3);
+        var cardsNeedWork = flashCards.Count(f => f.TimesLearned > 0 && (double)f.Score / f.TimesLearned < 0);
         var cardsLearned = flashCards.Count(f => f.TimesLearned > 0);
 
         return new LearningProgress
@@ -163,25 +163,43 @@ public class AnalyticsService : IAnalyticsService
         return stats;
     }
 
-    public async Task<ScoreDistribution> GetScoreDistributionAsync(int userId)
+    public async Task<AverageScoreDistribution> GetAverageScoreDistributionAsync(int userId)
     {
         var flashCards = await _context.FlashCardCollections
             .Where(c => c.UserId == userId)
             .SelectMany(c => c.FlashCards)
             .ToListAsync();
 
-        return GetScoreDistributionForCards(flashCards);
+        return GetAverageScoreDistributionForCards(flashCards);
     }
 
-    private ScoreDistribution GetScoreDistributionForCards(List<Models.FlashCard> flashCards)
+    private AverageScoreDistribution GetAverageScoreDistributionForCards(List<Models.FlashCard> flashCards)
     {
-        return new ScoreDistribution
+        // Only consider cards that have been learned at least once
+        var learnedCards = flashCards.Where(f => f.TimesLearned > 0).ToList();
+        
+        return new AverageScoreDistribution
         {
-            Score0To20 = flashCards.Count(f => f.Score <= 20),
-            Score21To40 = flashCards.Count(f => f.Score > 20 && f.Score <= 40),
-            Score41To60 = flashCards.Count(f => f.Score > 40 && f.Score <= 60),
-            Score61To80 = flashCards.Count(f => f.Score > 60 && f.Score <= 80),
-            Score81To100 = flashCards.Count(f => f.Score > 80 && f.Score <= 100)
+            ScoreMinus5ToMinus3 = learnedCards.Count(f => {
+                var avgScore = (double)f.Score / f.TimesLearned;
+                return avgScore >= -5 && avgScore < -3;
+            }),
+            ScoreMinus3ToMinus1 = learnedCards.Count(f => {
+                var avgScore = (double)f.Score / f.TimesLearned;
+                return avgScore >= -3 && avgScore < -1;
+            }),
+            ScoreMinus1To1 = learnedCards.Count(f => {
+                var avgScore = (double)f.Score / f.TimesLearned;
+                return avgScore >= -1 && avgScore < 1;
+            }),
+            Score1To3 = learnedCards.Count(f => {
+                var avgScore = (double)f.Score / f.TimesLearned;
+                return avgScore >= 1 && avgScore < 3;
+            }),
+            Score3To5 = learnedCards.Count(f => {
+                var avgScore = (double)f.Score / f.TimesLearned;
+                return avgScore >= 3 && avgScore <= 5;
+            })
         };
     }
 }
