@@ -53,6 +53,7 @@ builder.Services.AddScoped<IFlashCardService, FlashCardService>();
 builder.Services.AddScoped<IFlashCardCollectionService, FlashCardCollectionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<WebAPI.Services.LearnSession.ILearnSessionService, WebAPI.Services.LearnSession.LearnSessionService>();
+builder.Services.AddScoped<WebAPI.Services.Analytics.IAnalyticsService, WebAPI.Services.Analytics.AnalyticsService>();
 
 // Register Business Logic Layer
 builder.Services.AddScoped<IUserBusinessLogic, UserBusinessLogic>();
@@ -60,6 +61,7 @@ builder.Services.AddScoped<IFlashCardBusinessLogic, FlashCardBusinessLogic>();
 builder.Services.AddScoped<IFlashCardCollectionBusinessLogic, FlashCardCollectionBusinessLogic>();
 builder.Services.AddScoped<IAuthBusinessLogic, AuthBusinessLogic>();
 builder.Services.AddScoped<WebAPI.BusinessLogic.LearnSession.ILearnSessionBusinessLogic, WebAPI.BusinessLogic.LearnSession.LearnSessionBusinessLogic>();
+builder.Services.AddScoped<WebAPI.BusinessLogic.Analytics.IAnalyticsBusinessLogic, WebAPI.BusinessLogic.Analytics.AnalyticsBusinessLogic>();
 
 // Add Controllers
 builder.Services.AddControllers();
