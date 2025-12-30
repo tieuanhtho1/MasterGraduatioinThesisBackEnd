@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,9 @@ using WebAPI.Services;
 using WebAPI.Services.FlashCard;
 using WebAPI.Services.FlashCardCollection;
 using WebAPI.Services.User;
+
+// Disable automatic claim mapping to prevent 'sub' from overriding ClaimTypes.NameIdentifier
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +58,7 @@ builder.Services.AddScoped<IFlashCardCollectionService, FlashCardCollectionServi
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<WebAPI.Services.LearnSession.ILearnSessionService, WebAPI.Services.LearnSession.LearnSessionService>();
 builder.Services.AddScoped<WebAPI.Services.Analytics.IAnalyticsService, WebAPI.Services.Analytics.AnalyticsService>();
+builder.Services.AddScoped<WebAPI.Services.Mindmap.IMindMapService, WebAPI.Services.Mindmap.MindMapService>();
 
 // Register Business Logic Layer
 builder.Services.AddScoped<IUserBusinessLogic, UserBusinessLogic>();
@@ -62,6 +67,7 @@ builder.Services.AddScoped<IFlashCardCollectionBusinessLogic, FlashCardCollectio
 builder.Services.AddScoped<IAuthBusinessLogic, AuthBusinessLogic>();
 builder.Services.AddScoped<WebAPI.BusinessLogic.LearnSession.ILearnSessionBusinessLogic, WebAPI.BusinessLogic.LearnSession.LearnSessionBusinessLogic>();
 builder.Services.AddScoped<WebAPI.BusinessLogic.Analytics.IAnalyticsBusinessLogic, WebAPI.BusinessLogic.Analytics.AnalyticsBusinessLogic>();
+builder.Services.AddScoped<WebAPI.BusinessLogic.Mindmap.IMindMapBusinessLogic, WebAPI.BusinessLogic.Mindmap.MindMapBusinessLogic>();
 
 // Add Controllers
 builder.Services.AddControllers();
