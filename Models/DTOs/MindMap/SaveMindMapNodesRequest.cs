@@ -7,6 +7,7 @@ namespace WebAPI.Models.DTOs.MindMap;
 public class SaveMindMapNodesRequest
 {
     public List<SaveMindMapNodeItem> Nodes { get; set; } = new();
+    public List<BulkSaveEdgeDto> Edges { get; set; } = new();
 }
 
 public class SaveMindMapNodeItem
@@ -19,6 +20,5 @@ public class SaveMindMapNodeItem
     public double PositionY { get; set; }
     public string Color { get; set; } = "#ffffff";
     public bool HideChildren { get; set; } = false;
-    public int? ParentNodeId { get; set; }
     public int FlashCardId { get; set; }
 }

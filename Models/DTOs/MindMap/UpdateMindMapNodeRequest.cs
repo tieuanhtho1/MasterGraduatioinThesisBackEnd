@@ -6,5 +6,4 @@ public class UpdateMindMapNodeRequest
     public double PositionY { get; set; }
     public string Color { get; set; } = "#ffffff";
     public bool HideChildren { get; set; } = false;
-    public int? ParentNodeId { get; set; }
 }

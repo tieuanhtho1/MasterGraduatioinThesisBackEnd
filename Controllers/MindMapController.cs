@@ -36,7 +36,7 @@ public class MindMapController : ControllerBase
     }
 
     /// <summary>
-    /// Get a mind map with all nodes and their flash card data.
+    /// Get a mind map with all nodes, edges, and their flash card data.
     /// This is the main endpoint for React Flow rendering.
     /// </summary>
     [HttpGet("{id}/detail")]
@@ -63,7 +63,6 @@ public class MindMapController : ControllerBase
                 PositionY = n.PositionY,
                 Color = n.Color,
                 HideChildren = n.HideChildren,
-                ParentNodeId = n.ParentNodeId,
                 MindMapId = n.MindMapId,
                 FlashCardId = n.FlashCardId,
                 FlashCard = n.FlashCard != null ? new FlashCardInfo
@@ -75,6 +74,15 @@ public class MindMapController : ControllerBase
                     TimesLearned = n.FlashCard.TimesLearned,
                     FlashCardCollectionId = n.FlashCard.FlashCardCollectionId
                 } : null!
+            }).ToList() ?? new(),
+            Edges = mindMap.Edges?.Select(e => new MindMapEdgeResponse
+            {
+                Id = e.Id,
+                SourceNodeId = e.SourceNodeId,
+                TargetNodeId = e.TargetNodeId,
+                SourceHandle = e.SourceHandle,
+                TargetHandle = e.TargetHandle,
+                MindMapId = e.MindMapId
             }).ToList() ?? new()
         };
 
@@ -161,7 +169,7 @@ public class MindMapController : ControllerBase
     }
 
     /// <summary>
-    /// Delete a mind map and all its nodes
+    /// Delete a mind map and all its nodes and edges
     /// </summary>
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteMindMap(int id)
@@ -194,7 +202,6 @@ public class MindMapController : ControllerBase
             PositionY = node.PositionY,
             Color = node.Color,
             HideChildren = node.HideChildren,
-            ParentNodeId = node.ParentNodeId,
             MindMapId = node.MindMapId,
             FlashCardId = node.FlashCardId,
             FlashCard = node.FlashCard != null ? new FlashCardInfo
@@ -229,7 +236,6 @@ public class MindMapController : ControllerBase
             PositionY = request.PositionY,
             Color = request.Color,
             HideChildren = request.HideChildren,
-            ParentNodeId = request.ParentNodeId,
             MindMapId = request.MindMapId,
             FlashCardId = request.FlashCardId
         };
@@ -242,7 +248,7 @@ public class MindMapController : ControllerBase
     }
 
     /// <summary>
-    /// Update a single node (position, color, hideChildren, parent)
+    /// Update a single node (position, color, hideChildren)
     /// </summary>
     [HttpPut("node/{nodeId}")]
     public async Task<IActionResult> UpdateNode(int nodeId, [FromBody] UpdateMindMapNodeRequest request)
@@ -255,7 +261,7 @@ public class MindMapController : ControllerBase
     }
 
     /// <summary>
-    /// Delete a node and all its children recursively
+    /// Delete a node. All edges referencing this node are cascade deleted.
     /// </summary>
     [HttpDelete("node/{nodeId}")]
     public async Task<IActionResult> DeleteNode(int nodeId)
@@ -267,10 +273,40 @@ public class MindMapController : ControllerBase
         return Ok(new { message = "Node deleted successfully" });
     }
 
+    // ══════════════════════════════════════════
+    //  MIND MAP EDGE ENDPOINTS
+    // ══════════════════════════════════════════
+
     /// <summary>
-    /// Save (bulk replace) all nodes of a mind map.
-    /// Frontend sends the entire node tree; backend replaces all existing nodes.
-    /// Preserves positions, colors, hideChildren state, and parent relationships.
+    /// Get all edges for a mind map
+    /// </summary>
+    [HttpGet("{mindMapId}/edges")]
+    public async Task<IActionResult> GetEdges(int mindMapId)
+    {
+        var edges = await _mindMapBusinessLogic.GetEdgesByMindMapIdAsync(mindMapId);
+        return Ok(edges);
+    }
+
+    /// <summary>
+    /// Delete a single edge by its ID
+    /// </summary>
+    [HttpDelete("edge/{edgeId}")]
+    public async Task<IActionResult> DeleteEdge(int edgeId)
+    {
+        var result = await _mindMapBusinessLogic.DeleteEdgeAsync(edgeId);
+        if (!result)
+            return NotFound(new { message = "Edge not found" });
+
+        return NoContent();
+    }
+
+    // ══════════════════════════════════════════
+    //  BULK SAVE (NODES + EDGES)
+    // ══════════════════════════════════════════
+
+    /// <summary>
+    /// Save (bulk) all nodes and edges of a mind map.
+    /// Frontend sends the entire node tree and edge list; backend syncs accordingly.
     /// </summary>
     [HttpPut("{mindMapId}/nodes")]
     public async Task<IActionResult> SaveMindMapNodes(int mindMapId, [FromBody] SaveMindMapNodesRequest request)
@@ -281,8 +317,9 @@ public class MindMapController : ControllerBase
 
         return Ok(new
         {
-            message = "Mind map nodes saved successfully",
-            nodes = result
+            message = "Saved successfully",
+            nodes = result.Nodes,
+            edges = result.Edges
         });
     }
 

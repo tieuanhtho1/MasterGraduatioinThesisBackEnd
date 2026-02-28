@@ -19,5 +19,11 @@ public interface IMindMapBusinessLogic
     Task<MindMapNodeResponse?> CreateNodeAsync(MindMapNode node);
     Task<MindMapNodeResponse?> UpdateNodeAsync(int id, UpdateMindMapNodeRequest request);
     Task<bool> DeleteNodeAsync(int id);
-    Task<IEnumerable<MindMapNodeResponse>> SaveMindMapNodesAsync(int mindMapId, SaveMindMapNodesRequest request);
+
+    // Edge operations
+    Task<IEnumerable<MindMapEdgeResponse>> GetEdgesByMindMapIdAsync(int mindMapId);
+    Task<bool> DeleteEdgeAsync(int id);
+
+    // Bulk save (nodes + edges)
+    Task<SaveMindMapNodesResult?> SaveMindMapNodesAsync(int mindMapId, SaveMindMapNodesRequest request);
 }

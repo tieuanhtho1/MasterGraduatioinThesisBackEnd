@@ -18,5 +18,8 @@ namespace WebAPI.Models
 
         // One mind map → many nodes
         public List<MindMapNode> Nodes { get; set; } = new();
+
+        // One mind map → many edges
+        public List<MindMapEdge> Edges { get; set; } = new();
     }
 }

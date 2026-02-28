@@ -22,4 +22,13 @@ public interface IMindMapService
     Task<bool> DeleteNodeAsync(int id);
     Task DeleteNodesByMindMapIdAsync(int mindMapId);
     Task<IEnumerable<MindMapNode>> CreateNodesAsync(IEnumerable<MindMapNode> nodes);
+
+    // MindMapEdge CRUD
+    Task<IEnumerable<MindMapEdge>> GetEdgesByMindMapIdAsync(int mindMapId);
+    Task<MindMapEdge?> GetEdgeByIdAsync(int id);
+    Task<MindMapEdge> CreateEdgeAsync(MindMapEdge edge);
+    Task<MindMapEdge> UpdateEdgeAsync(MindMapEdge edge);
+    Task<bool> DeleteEdgeAsync(int id);
+    Task DeleteEdgesByMindMapIdAsync(int mindMapId);
+    Task<IEnumerable<MindMapEdge>> CreateEdgesAsync(IEnumerable<MindMapEdge> edges);
 }

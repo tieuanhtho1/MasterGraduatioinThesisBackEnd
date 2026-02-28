@@ -15,4 +15,5 @@ public class MindMapDetailResponse
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public List<MindMapNodeResponse> Nodes { get; set; } = new();
+    public List<MindMapEdgeResponse> Edges { get; set; } = new();
 }

@@ -12,11 +12,6 @@ namespace WebAPI.Models
         public string Color { get; set; } = "#ffffff";
         public bool HideChildren { get; set; } = false;
 
-        // Self-referencing parent node (tree structure)
-        public int? ParentNodeId { get; set; }
-        public MindMapNode? ParentNode { get; set; }
-        public List<MindMapNode> Children { get; set; } = new();
-
         // Belongs to a mind map
         public int MindMapId { get; set; }
         public MindMap MindMap { get; set; } = null!;
@@ -24,5 +19,9 @@ namespace WebAPI.Models
         // Reference to a flash card
         public int FlashCardId { get; set; }
         public FlashCard FlashCard { get; set; } = null!;
+
+        // Edges where this node is the source or target
+        public List<MindMapEdge> SourceEdges { get; set; } = new();
+        public List<MindMapEdge> TargetEdges { get; set; } = new();
     }
 }

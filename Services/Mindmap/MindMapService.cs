@@ -28,6 +28,7 @@ public class MindMapService : IMindMapService
             .Include(m => m.FlashCardCollection)
             .Include(m => m.Nodes)
                 .ThenInclude(n => n.FlashCard)
+            .Include(m => m.Edges)
             .FirstOrDefaultAsync(m => m.Id == id);
     }
 
@@ -69,12 +70,14 @@ public class MindMapService : IMindMapService
     {
         var mindMap = await _context.MindMaps
             .Include(m => m.Nodes)
+            .Include(m => m.Edges)
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (mindMap == null)
             return false;
 
-        // Remove all nodes first (cascade should handle this, but be explicit)
+        // Remove all edges first, then nodes (cascade should handle this, but be explicit)
+        _context.MindMapEdges.RemoveRange(mindMap.Edges);
         _context.MindMapNodes.RemoveRange(mindMap.Nodes);
         _context.MindMaps.Remove(mindMap);
         await _context.SaveChangesAsync();
@@ -124,14 +127,17 @@ public class MindMapService : IMindMapService
     public async Task<bool> DeleteNodeAsync(int id)
     {
         var node = await _context.MindMapNodes
-            .Include(n => n.Children)
             .FirstOrDefaultAsync(n => n.Id == id);
 
         if (node == null)
             return false;
 
-        // Recursively delete children
-        await DeleteChildrenRecursive(node);
+        // Delete all edges referencing this node
+        var edges = await _context.MindMapEdges
+            .Where(e => e.SourceNodeId == id || e.TargetNodeId == id)
+            .ToListAsync();
+        _context.MindMapEdges.RemoveRange(edges);
+
         _context.MindMapNodes.Remove(node);
         await _context.SaveChangesAsync();
         return true;
@@ -139,6 +145,12 @@ public class MindMapService : IMindMapService
 
     public async Task DeleteNodesByMindMapIdAsync(int mindMapId)
     {
+        // Delete edges first
+        var edges = await _context.MindMapEdges
+            .Where(e => e.MindMapId == mindMapId)
+            .ToListAsync();
+        _context.MindMapEdges.RemoveRange(edges);
+
         var nodes = await _context.MindMapNodes
             .Where(n => n.MindMapId == mindMapId)
             .ToListAsync();
@@ -154,19 +166,59 @@ public class MindMapService : IMindMapService
         return nodes;
     }
 
-    // ──────────────── Helpers ────────────────
+    // ──────────────── MindMapEdge ────────────────
 
-    private async Task DeleteChildrenRecursive(MindMapNode node)
+    public async Task<IEnumerable<MindMapEdge>> GetEdgesByMindMapIdAsync(int mindMapId)
     {
-        var children = await _context.MindMapNodes
-            .Include(n => n.Children)
-            .Where(n => n.ParentNodeId == node.Id)
+        return await _context.MindMapEdges
+            .Where(e => e.MindMapId == mindMapId)
+            .ToListAsync();
+    }
+
+    public async Task<MindMapEdge?> GetEdgeByIdAsync(int id)
+    {
+        return await _context.MindMapEdges.FindAsync(id);
+    }
+
+    public async Task<MindMapEdge> CreateEdgeAsync(MindMapEdge edge)
+    {
+        _context.MindMapEdges.Add(edge);
+        await _context.SaveChangesAsync();
+        return edge;
+    }
+
+    public async Task<MindMapEdge> UpdateEdgeAsync(MindMapEdge edge)
+    {
+        _context.MindMapEdges.Update(edge);
+        await _context.SaveChangesAsync();
+        return edge;
+    }
+
+    public async Task<bool> DeleteEdgeAsync(int id)
+    {
+        var edge = await _context.MindMapEdges.FindAsync(id);
+        if (edge == null)
+            return false;
+
+        _context.MindMapEdges.Remove(edge);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task DeleteEdgesByMindMapIdAsync(int mindMapId)
+    {
+        var edges = await _context.MindMapEdges
+            .Where(e => e.MindMapId == mindMapId)
             .ToListAsync();
 
-        foreach (var child in children)
-        {
-            await DeleteChildrenRecursive(child);
-            _context.MindMapNodes.Remove(child);
-        }
+        _context.MindMapEdges.RemoveRange(edges);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<MindMapEdge>> CreateEdgesAsync(IEnumerable<MindMapEdge> edges)
+    {
+        await _context.MindMapEdges.AddRangeAsync(edges);
+        await _context.SaveChangesAsync();
+        return edges;
     }
 }
