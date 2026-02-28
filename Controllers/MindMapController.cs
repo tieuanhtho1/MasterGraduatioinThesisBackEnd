@@ -1,269 +1,306 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using WebAPI.BusinessLogic.Mindmap;
+using WebAPI.BusinessLogic.MindMap;
+using WebAPI.Models;
 using WebAPI.Models.DTOs.MindMap;
-using WebAPI.Services.User;
 
-namespace WebAPI.Controllers
+namespace WebAPI.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class MindMapController : ControllerBase
 {
-    [Authorize]
-    [ApiController]
-    [Route("api/[controller]")]
-    public class MindMapController : ControllerBase
+    private readonly IMindMapBusinessLogic _mindMapBusinessLogic;
+
+    public MindMapController(IMindMapBusinessLogic mindMapBusinessLogic)
     {
-        private readonly IMindMapBusinessLogic _mindMapBusinessLogic;
-        private readonly IUserService _userService;
+        _mindMapBusinessLogic = mindMapBusinessLogic;
+    }
 
-        public MindMapController(IMindMapBusinessLogic mindMapBusinessLogic, IUserService userService)
+    // ══════════════════════════════════════════
+    //  MIND MAP ENDPOINTS
+    // ══════════════════════════════════════════
+
+    /// <summary>
+    /// Get a mind map by ID (metadata only, no nodes)
+    /// </summary>
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetMindMap(int id)
+    {
+        var mindMap = await _mindMapBusinessLogic.GetMindMapByIdAsync(id);
+        if (mindMap == null)
+            return NotFound(new { message = "Mind map not found" });
+
+        return Ok(MapToResponse(mindMap));
+    }
+
+    /// <summary>
+    /// Get a mind map with all nodes and their flash card data.
+    /// This is the main endpoint for React Flow rendering.
+    /// </summary>
+    [HttpGet("{id}/detail")]
+    public async Task<IActionResult> GetMindMapDetail(int id)
+    {
+        var mindMap = await _mindMapBusinessLogic.GetMindMapWithNodesAsync(id);
+        if (mindMap == null)
+            return NotFound(new { message = "Mind map not found" });
+
+        var response = new MindMapDetailResponse
         {
-            _mindMapBusinessLogic = mindMapBusinessLogic;
-            _userService = userService;
-        }
+            Id = mindMap.Id,
+            Title = mindMap.Title,
+            Description = mindMap.Description,
+            UserId = mindMap.UserId,
+            FlashCardCollectionId = mindMap.FlashCardCollectionId,
+            CollectionTitle = mindMap.FlashCardCollection?.Title ?? string.Empty,
+            CreatedAt = mindMap.CreatedAt,
+            UpdatedAt = mindMap.UpdatedAt,
+            Nodes = mindMap.Nodes?.Select(n => new MindMapNodeResponse
+            {
+                Id = n.Id,
+                PositionX = n.PositionX,
+                PositionY = n.PositionY,
+                Color = n.Color,
+                HideChildren = n.HideChildren,
+                ParentNodeId = n.ParentNodeId,
+                MindMapId = n.MindMapId,
+                FlashCardId = n.FlashCardId,
+                FlashCard = n.FlashCard != null ? new FlashCardInfo
+                {
+                    Id = n.FlashCard.Id,
+                    Term = n.FlashCard.Term,
+                    Definition = n.FlashCard.Definition,
+                    Score = n.FlashCard.Score,
+                    TimesLearned = n.FlashCard.TimesLearned,
+                    FlashCardCollectionId = n.FlashCard.FlashCardCollectionId
+                } : null!
+            }).ToList() ?? new()
+        };
 
-        private async Task<int> GetUserId()
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Get all mind maps for a user
+    /// </summary>
+    [HttpGet("user/{userId}")]
+    public async Task<IActionResult> GetMindMapsByUser(int userId)
+    {
+        var mindMaps = await _mindMapBusinessLogic.GetMindMapsByUserIdAsync(userId);
+        var response = mindMaps.Select(MapToResponse);
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Get all mind maps for a collection
+    /// </summary>
+    [HttpGet("collection/{collectionId}")]
+    public async Task<IActionResult> GetMindMapsByCollection(int collectionId)
+    {
+        var mindMaps = await _mindMapBusinessLogic.GetMindMapsByCollectionIdAsync(collectionId);
+        var response = mindMaps.Select(MapToResponse);
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Create a new mind map
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> CreateMindMap([FromBody] CreateMindMapRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title))
+            return BadRequest(new { message = "Title is required" });
+
+        if (request.UserId <= 0)
+            return BadRequest(new { message = "Valid UserId is required" });
+
+        if (request.FlashCardCollectionId <= 0)
+            return BadRequest(new { message = "Valid FlashCardCollectionId is required" });
+
+        var mindMap = new Models.MindMap
         {
-            // Try to get user ID from claims first
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
-            {
-                return userId;
-            }
+            Title = request.Title,
+            Description = request.Description,
+            UserId = request.UserId,
+            FlashCardCollectionId = request.FlashCardCollectionId
+        };
 
-            // If that fails, try to get username and look up the user ID
-            var username = User.FindFirst(ClaimTypes.Name)?.Value;
-            if (string.IsNullOrEmpty(username))
-                throw new UnauthorizedAccessException("User information not found in token");
+        var result = await _mindMapBusinessLogic.CreateMindMapAsync(mindMap);
+        if (result == null)
+            return BadRequest(new { message = "Failed to create mind map" });
 
-            var user = await _userService.GetUserByUsernameAsync(username);
-            if (user == null)
-                throw new UnauthorizedAccessException("User not found");
+        // Reload to get collection info
+        var loaded = await _mindMapBusinessLogic.GetMindMapByIdAsync(result.Id);
+        return CreatedAtAction(nameof(GetMindMap), new { id = result.Id }, MapToResponse(loaded!));
+    }
 
-            return user.Id;
-        }
+    /// <summary>
+    /// Update a mind map (title, description, collection)
+    /// </summary>
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateMindMap(int id, [FromBody] UpdateMindMapRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title))
+            return BadRequest(new { message = "Title is required" });
 
-        // ============ MindMap Endpoints ============
-
-        /// <summary>
-        /// Get all mindmaps for the current user
-        /// </summary>
-        [HttpGet]
-        public async Task<ActionResult<List<MindMapResponseDto>>> GetUserMindMaps([FromQuery] int userId)
+        var mindMap = new Models.MindMap
         {
-            try
-            {
-                var mindMaps = await _mindMapBusinessLogic.GetUserMindMapsAsync(userId);
-                return Ok(mindMaps);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving mindmaps", error = ex.Message });
-            }
-        }
+            Title = request.Title,
+            Description = request.Description,
+            FlashCardCollectionId = request.FlashCardCollectionId ?? 0
+        };
 
-        /// <summary>
-        /// Get a specific mindmap by ID (without full node details)
-        /// </summary>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<MindMapResponseDto>> GetMindMapById(int id)
+        var result = await _mindMapBusinessLogic.UpdateMindMapAsync(id, mindMap);
+        if (result == null)
+            return NotFound(new { message = "Mind map not found" });
+
+        // Reload to get collection info
+        var loaded = await _mindMapBusinessLogic.GetMindMapByIdAsync(result.Id);
+        return Ok(MapToResponse(loaded!));
+    }
+
+    /// <summary>
+    /// Delete a mind map and all its nodes
+    /// </summary>
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteMindMap(int id)
+    {
+        var result = await _mindMapBusinessLogic.DeleteMindMapAsync(id);
+        if (!result)
+            return NotFound(new { message = "Mind map not found" });
+
+        return Ok(new { message = "Mind map deleted successfully" });
+    }
+
+    // ══════════════════════════════════════════
+    //  MIND MAP NODE ENDPOINTS
+    // ══════════════════════════════════════════
+
+    /// <summary>
+    /// Get a single node by ID (with flash card info)
+    /// </summary>
+    [HttpGet("node/{nodeId}")]
+    public async Task<IActionResult> GetNode(int nodeId)
+    {
+        var node = await _mindMapBusinessLogic.GetNodeByIdAsync(nodeId);
+        if (node == null)
+            return NotFound(new { message = "Node not found" });
+
+        var response = new MindMapNodeResponse
         {
-            try
+            Id = node.Id,
+            PositionX = node.PositionX,
+            PositionY = node.PositionY,
+            Color = node.Color,
+            HideChildren = node.HideChildren,
+            ParentNodeId = node.ParentNodeId,
+            MindMapId = node.MindMapId,
+            FlashCardId = node.FlashCardId,
+            FlashCard = node.FlashCard != null ? new FlashCardInfo
             {
-                var userId = await GetUserId();
-                var mindMap = await _mindMapBusinessLogic.GetMindMapByIdAsync(id, userId);
+                Id = node.FlashCard.Id,
+                Term = node.FlashCard.Term,
+                Definition = node.FlashCard.Definition,
+                Score = node.FlashCard.Score,
+                TimesLearned = node.FlashCard.TimesLearned,
+                FlashCardCollectionId = node.FlashCard.FlashCardCollectionId
+            } : null!
+        };
 
-                if (mindMap == null)
-                    return NotFound(new { message = "MindMap not found" });
+        return Ok(response);
+    }
 
-                return Ok(mindMap);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving the mindmap", error = ex.Message });
-            }
-        }
+    /// <summary>
+    /// Add a single node to a mind map
+    /// </summary>
+    [HttpPost("node")]
+    public async Task<IActionResult> CreateNode([FromBody] CreateMindMapNodeRequest request)
+    {
+        if (request.MindMapId <= 0)
+            return BadRequest(new { message = "Valid MindMapId is required" });
 
-        /// <summary>
-        /// Get full mindmap with all nodes and flashcard information
-        /// This is the main endpoint for displaying the mindmap in the frontend
-        /// </summary>
-        [HttpGet("{id}/full")]
-        public async Task<ActionResult<FullMindMapResponseDto>> GetFullMindMap(int id)
+        if (request.FlashCardId <= 0)
+            return BadRequest(new { message = "Valid FlashCardId is required" });
+
+        var node = new MindMapNode
         {
-            try
-            {
-                var userId = await GetUserId();
-                var mindMap = await _mindMapBusinessLogic.GetFullMindMapAsync(id, userId);
+            PositionX = request.PositionX,
+            PositionY = request.PositionY,
+            Color = request.Color,
+            HideChildren = request.HideChildren,
+            ParentNodeId = request.ParentNodeId,
+            MindMapId = request.MindMapId,
+            FlashCardId = request.FlashCardId
+        };
 
-                if (mindMap == null)
-                    return NotFound(new { message = "MindMap not found" });
+        var result = await _mindMapBusinessLogic.CreateNodeAsync(node);
+        if (result == null)
+            return BadRequest(new { message = "Failed to create node" });
 
-                return Ok(mindMap);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving the full mindmap", error = ex.Message });
-            }
-        }
+        return CreatedAtAction(nameof(GetNode), new { nodeId = result.Id }, result);
+    }
 
-        /// <summary>
-        /// Create a new mindmap
-        /// </summary>
-        [HttpPost]
-        public async Task<ActionResult<MindMapResponseDto>> CreateMindMap([FromBody] CreateMindMapDto dto)
+    /// <summary>
+    /// Update a single node (position, color, hideChildren, parent)
+    /// </summary>
+    [HttpPut("node/{nodeId}")]
+    public async Task<IActionResult> UpdateNode(int nodeId, [FromBody] UpdateMindMapNodeRequest request)
+    {
+        var result = await _mindMapBusinessLogic.UpdateNodeAsync(nodeId, request);
+        if (result == null)
+            return NotFound(new { message = "Node not found" });
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Delete a node and all its children recursively
+    /// </summary>
+    [HttpDelete("node/{nodeId}")]
+    public async Task<IActionResult> DeleteNode(int nodeId)
+    {
+        var result = await _mindMapBusinessLogic.DeleteNodeAsync(nodeId);
+        if (!result)
+            return NotFound(new { message = "Node not found" });
+
+        return Ok(new { message = "Node deleted successfully" });
+    }
+
+    /// <summary>
+    /// Save (bulk replace) all nodes of a mind map.
+    /// Frontend sends the entire node tree; backend replaces all existing nodes.
+    /// Preserves positions, colors, hideChildren state, and parent relationships.
+    /// </summary>
+    [HttpPut("{mindMapId}/nodes")]
+    public async Task<IActionResult> SaveMindMapNodes(int mindMapId, [FromBody] SaveMindMapNodesRequest request)
+    {
+        var result = await _mindMapBusinessLogic.SaveMindMapNodesAsync(mindMapId, request);
+        if (result == null)
+            return NotFound(new { message = "Mind map not found" });
+
+        return Ok(new
         {
-            try
-            {
-                var userId = await GetUserId();
-                var mindMap = await _mindMapBusinessLogic.CreateMindMapAsync(dto, userId);
-                return CreatedAtAction(nameof(GetMindMapById), new { id = mindMap.Id }, mindMap);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while creating the mindmap", error = ex.Message });
-            }
-        }
+            message = "Mind map nodes saved successfully",
+            nodes = result
+        });
+    }
 
-        /// <summary>
-        /// Update a mindmap's basic information (name, description)
-        /// </summary>
-        [HttpPut("{id}")]
-        public async Task<ActionResult<MindMapResponseDto>> UpdateMindMap(int id, [FromBody] UpdateMindMapDto dto)
+    // ──────────────── Helpers ────────────────
+
+    private static MindMapResponse MapToResponse(Models.MindMap mindMap)
+    {
+        return new MindMapResponse
         {
-            try
-            {
-                var userId = await GetUserId();
-                var mindMap = await _mindMapBusinessLogic.UpdateMindMapAsync(id, dto, userId);
-
-                if (mindMap == null)
-                    return NotFound(new { message = "MindMap not found" });
-
-                return Ok(mindMap);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while updating the mindmap", error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Delete a mindmap and all its nodes
-        /// </summary>
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> DeleteMindMap(int id)
-        {
-            try
-            {
-                var userId = await GetUserId();
-                var result = await _mindMapBusinessLogic.DeleteMindMapAsync(id, userId);
-
-                if (!result)
-                    return NotFound(new { message = "MindMap not found" });
-
-                return Ok(new { message = "MindMap deleted successfully" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while deleting the mindmap", error = ex.Message });
-            }
-        }
-
-        // ============ MindMapNode Endpoints ============
-
-        /// <summary>
-        /// Get a specific node by ID
-        /// </summary>
-        [HttpGet("nodes/{nodeId}")]
-        public async Task<ActionResult<MindMapNodeResponseDto>> GetNodeById(int nodeId)
-        {
-            try
-            {
-                var userId = await GetUserId();
-                var node = await _mindMapBusinessLogic.GetNodeByIdAsync(nodeId, userId);
-
-                if (node == null)
-                    return NotFound(new { message = "Node not found" });
-
-                return Ok(node);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while retrieving the node", error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Create a new node in a mindmap
-        /// </summary>
-        [HttpPost("{mindMapId}/nodes")]
-        public async Task<ActionResult<MindMapNodeResponseDto>> CreateNode(int mindMapId, [FromBody] CreateMindMapNodeDto dto)
-        {
-            try
-            {
-                var userId = await GetUserId();
-                var node = await _mindMapBusinessLogic.CreateNodeAsync(mindMapId, dto, userId);
-                return CreatedAtAction(nameof(GetNodeById), new { nodeId = node.Id }, node);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while creating the node", error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Update a node's properties (position, color, hideChildren, parent)
-        /// </summary>
-        [HttpPut("nodes/{nodeId}")]
-        public async Task<ActionResult<MindMapNodeResponseDto>> UpdateNode(int nodeId, [FromBody] UpdateMindMapNodeDto dto)
-        {
-            try
-            {
-                var userId = await GetUserId();
-                var node = await _mindMapBusinessLogic.UpdateNodeAsync(nodeId, dto, userId);
-
-                if (node == null)
-                    return NotFound(new { message = "Node not found" });
-
-                return Ok(node);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while updating the node", error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Delete a node (children become root nodes)
-        /// </summary>
-        [HttpDelete("nodes/{nodeId}")]
-        public async Task<ActionResult> DeleteNode(int nodeId)
-        {
-            try
-            {
-                var userId = await GetUserId();
-                var result = await _mindMapBusinessLogic.DeleteNodeAsync(nodeId, userId);
-
-                if (!result)
-                    return NotFound(new { message = "Node not found" });
-
-                return Ok(new { message = "Node deleted successfully" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred while deleting the node", error = ex.Message });
-            }
-        }
+            Id = mindMap.Id,
+            Title = mindMap.Title,
+            Description = mindMap.Description,
+            UserId = mindMap.UserId,
+            FlashCardCollectionId = mindMap.FlashCardCollectionId,
+            CollectionTitle = mindMap.FlashCardCollection?.Title ?? string.Empty,
+            NodeCount = mindMap.Nodes?.Count ?? 0,
+            CreatedAt = mindMap.CreatedAt,
+            UpdatedAt = mindMap.UpdatedAt
+        };
     }
 }

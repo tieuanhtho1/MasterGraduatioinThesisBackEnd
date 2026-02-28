@@ -12,4 +12,7 @@ public class User
 
     // One user → Many collections
     public List<FlashCardCollection> FlashCardCollections { get; set; } = new();
+
+    // One user → Many mind maps
+    public List<MindMap> MindMaps { get; set; } = new();
 }

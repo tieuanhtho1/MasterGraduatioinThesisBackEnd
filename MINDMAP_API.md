@@ -1,461 +1,532 @@
-# MindMap API Documentation
+# Mind Map API Documentation
 
-## Overview
-The MindMap API provides endpoints for managing mind maps and their nodes. Each user can have multiple mind maps, and each mind map can contain multiple nodes arranged in a tree structure. Each node references a flashcard and can have visual properties like position, color, and visibility.
-
-## Authentication
-All endpoints require JWT Bearer token authentication.
+> Base URL: `/api/MindMap`  
+> All endpoints require **JWT Bearer Authentication** (`Authorization: Bearer <token>`)
 
 ---
 
-## MindMap Endpoints
+## Table of Contents
 
-### 1. Get All User's MindMaps
-**GET** `/api/mindmap`
-
-Returns all mind maps belonging to the authenticated user.
-
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "name": "Spanish Vocabulary",
-    "description": "Mind map for learning Spanish words",
-    "userId": 5,
-    "createdAt": "2024-01-15T10:30:00Z",
-    "updatedAt": "2024-01-16T14:20:00Z",
-    "nodeCount": 15
-  }
-]
-```
+1. [Data Models](#data-models)
+2. [Mind Map Endpoints](#mind-map-endpoints)
+   - [GET /api/MindMap/{id}](#get-mind-map-by-id)
+   - [GET /api/MindMap/{id}/detail](#get-mind-map-detail-with-all-nodes)
+   - [GET /api/MindMap/user/{userId}](#get-mind-maps-by-user)
+   - [GET /api/MindMap/collection/{collectionId}](#get-mind-maps-by-collection)
+   - [POST /api/MindMap](#create-mind-map)
+   - [PUT /api/MindMap/{id}](#update-mind-map)
+   - [DELETE /api/MindMap/{id}](#delete-mind-map)
+3. [Mind Map Node Endpoints](#mind-map-node-endpoints)
+   - [GET /api/MindMap/node/{nodeId}](#get-node-by-id)
+   - [POST /api/MindMap/node](#create-node)
+   - [PUT /api/MindMap/node/{nodeId}](#update-node)
+   - [DELETE /api/MindMap/node/{nodeId}](#delete-node)
+   - [PUT /api/MindMap/{mindMapId}/nodes](#save-all-nodes-bulk-save)
 
 ---
 
-### 2. Get MindMap by ID
-**GET** `/api/mindmap/{id}`
+## Data Models
 
-Returns basic information about a specific mind map.
+### MindMapResponse (list / metadata)
 
-**Parameters:**
-- `id` (path): The mind map ID
-
-**Response:**
 ```json
 {
   "id": 1,
-  "name": "Spanish Vocabulary",
-  "description": "Mind map for learning Spanish words",
+  "title": "Biology Mind Map",
+  "description": "Chapter 1 concepts",
   "userId": 5,
-  "createdAt": "2024-01-15T10:30:00Z",
-  "updatedAt": "2024-01-16T14:20:00Z",
-  "nodeCount": 15
+  "flashCardCollectionId": 3,
+  "collectionTitle": "Biology 101",
+  "nodeCount": 12,
+  "createdAt": "2026-02-24T10:00:00Z",
+  "updatedAt": "2026-02-24T12:30:00Z"
 }
 ```
 
----
+### MindMapDetailResponse (full detail with nodes)
 
-### 3. Get Full MindMap with Nodes and FlashCards
-**GET** `/api/mindmap/{id}/full`
-
-Returns complete mind map data including all nodes and their associated flashcard information. **This is the primary endpoint for displaying the mind map in the frontend.**
-
-**Parameters:**
-- `id` (path): The mind map ID
-
-**Response:**
 ```json
 {
   "id": 1,
-  "name": "Spanish Vocabulary",
-  "description": "Mind map for learning Spanish words",
+  "title": "Biology Mind Map",
+  "description": "Chapter 1 concepts",
   "userId": 5,
-  "createdAt": "2024-01-15T10:30:00Z",
-  "updatedAt": "2024-01-16T14:20:00Z",
+  "flashCardCollectionId": 3,
+  "collectionTitle": "Biology 101",
+  "createdAt": "2026-02-24T10:00:00Z",
+  "updatedAt": "2026-02-24T12:30:00Z",
   "nodes": [
     {
-      "id": 1,
-      "mindMapId": 1,
-      "parentNodeId": null,
-      "positionX": 500,
-      "positionY": 300,
-      "color": "#3B82F6",
+      "id": 10,
+      "positionX": 250.0,
+      "positionY": 100.0,
+      "color": "#4CAF50",
       "hideChildren": false,
-      "createdAt": "2024-01-15T10:35:00Z",
-      "updatedAt": null,
+      "parentNodeId": null,
+      "mindMapId": 1,
+      "flashCardId": 42,
       "flashCard": {
         "id": 42,
-        "term": "Hola",
-        "definition": "Hello",
-        "score": 3,
-        "learnCount": 5,
-        "collectionId": 10,
-        "collectionName": "Spanish Basics"
+        "term": "Mitosis",
+        "definition": "A type of cell division...",
+        "score": 85,
+        "timesLearned": 3,
+        "flashCardCollectionId": 3
       }
     },
     {
-      "id": 2,
-      "mindMapId": 1,
-      "parentNodeId": 1,
-      "positionX": 700,
-      "positionY": 400,
-      "color": "#10B981",
+      "id": 11,
+      "positionX": 450.0,
+      "positionY": 200.0,
+      "color": "#2196F3",
       "hideChildren": false,
-      "createdAt": "2024-01-15T10:40:00Z",
-      "updatedAt": "2024-01-16T14:20:00Z",
+      "parentNodeId": 10,
+      "mindMapId": 1,
+      "flashCardId": 43,
       "flashCard": {
         "id": 43,
-        "term": "Adiós",
-        "definition": "Goodbye",
-        "score": 2,
-        "learnCount": 3,
-        "collectionId": 10,
-        "collectionName": "Spanish Basics"
+        "term": "Prophase",
+        "definition": "First stage of mitosis...",
+        "score": 70,
+        "timesLearned": 2,
+        "flashCardCollectionId": 3
       }
     }
   ]
 }
 ```
 
----
+### MindMapNodeResponse
 
-### 4. Create MindMap
-**POST** `/api/mindmap`
-
-Creates a new mind map for the authenticated user.
-
-**Request Body:**
 ```json
 {
-  "name": "Spanish Vocabulary",
-  "description": "Mind map for learning Spanish words"
-}
-```
-
-**Response:**
-```json
-{
-  "id": 1,
-  "name": "Spanish Vocabulary",
-  "description": "Mind map for learning Spanish words",
-  "userId": 5,
-  "createdAt": "2024-01-15T10:30:00Z",
-  "updatedAt": null,
-  "nodeCount": 0
-}
-```
-
----
-
-### 5. Update MindMap
-**PUT** `/api/mindmap/{id}`
-
-Updates the basic information (name, description) of a mind map.
-
-**Parameters:**
-- `id` (path): The mind map ID
-
-**Request Body:**
-```json
-{
-  "name": "Advanced Spanish Vocabulary",
-  "description": "Updated description"
-}
-```
-
-**Response:**
-```json
-{
-  "id": 1,
-  "name": "Advanced Spanish Vocabulary",
-  "description": "Updated description",
-  "userId": 5,
-  "createdAt": "2024-01-15T10:30:00Z",
-  "updatedAt": "2024-01-16T15:00:00Z",
-  "nodeCount": 15
-}
-```
-
----
-
-### 6. Delete MindMap
-**DELETE** `/api/mindmap/{id}`
-
-Deletes a mind map and all its nodes.
-
-**Parameters:**
-- `id` (path): The mind map ID
-
-**Response:**
-```json
-{
-  "message": "MindMap deleted successfully"
-}
-```
-
----
-
-## MindMapNode Endpoints
-
-### 7. Get Node by ID
-**GET** `/api/mindmap/nodes/{nodeId}`
-
-Returns information about a specific node.
-
-**Parameters:**
-- `nodeId` (path): The node ID
-
-**Response:**
-```json
-{
-  "id": 1,
-  "mindMapId": 1,
-  "flashCardId": 42,
+  "id": 10,
+  "positionX": 250.0,
+  "positionY": 100.0,
+  "color": "#4CAF50",
+  "hideChildren": false,
   "parentNodeId": null,
-  "positionX": 500,
-  "positionY": 300,
-  "color": "#3B82F6",
-  "hideChildren": false,
-  "createdAt": "2024-01-15T10:35:00Z",
-  "updatedAt": null
+  "mindMapId": 1,
+  "flashCardId": 42,
+  "flashCard": {
+    "id": 42,
+    "term": "Mitosis",
+    "definition": "A type of cell division...",
+    "score": 85,
+    "timesLearned": 3,
+    "flashCardCollectionId": 3
+  }
 }
 ```
 
 ---
 
-### 8. Create Node
-**POST** `/api/mindmap/{mindMapId}/nodes`
+## Mind Map Endpoints
 
-Creates a new node in a mind map.
+### Get Mind Map by ID
 
-**Parameters:**
-- `mindMapId` (path): The mind map ID
+Returns mind map metadata (no nodes).
+
+```
+GET /api/MindMap/{id}
+```
+
+**Response:** `200 OK` → `MindMapResponse`  
+**Error:** `404 Not Found` → `{ "message": "Mind map not found" }`
+
+---
+
+### Get Mind Map Detail (with all nodes)
+
+⭐ **Main endpoint for React Flow rendering.** Returns the full mind map with every node and their corresponding flash card data.
+
+```
+GET /api/MindMap/{id}/detail
+```
+
+**Response:** `200 OK` → `MindMapDetailResponse`  
+**Error:** `404 Not Found` → `{ "message": "Mind map not found" }`
+
+**Frontend usage:**
+- Use `nodes` array to build React Flow nodes
+- Each node's `parentNodeId` defines the edge connections (parent → child)
+- `positionX` / `positionY` map directly to React Flow's `position: { x, y }`
+- `hideChildren` determines whether child nodes are visible
+- `flashCard.term` is the label displayed on each node
+- Click a node to show the full `flashCard` object (definition, score, timesLearned)
+
+---
+
+### Get Mind Maps by User
+
+Returns all mind maps belonging to a user (list view).
+
+```
+GET /api/MindMap/user/{userId}
+```
+
+**Response:** `200 OK` → `MindMapResponse[]`
+
+---
+
+### Get Mind Maps by Collection
+
+Returns all mind maps linked to a specific flash card collection.
+
+```
+GET /api/MindMap/collection/{collectionId}
+```
+
+**Response:** `200 OK` → `MindMapResponse[]`
+
+---
+
+### Create Mind Map
+
+```
+POST /api/MindMap
+Content-Type: application/json
+```
 
 **Request Body:**
+
 ```json
 {
-  "flashCardId": 42,
-  "parentNodeId": 1,
-  "positionX": 700,
-  "positionY": 400,
-  "color": "#10B981",
-  "hideChildren": false
+  "title": "Biology Mind Map",
+  "description": "Chapter 1 concepts",
+  "userId": 5,
+  "flashCardCollectionId": 3
 }
 ```
 
-**Notes:**
-- `parentNodeId` can be null for root nodes
-- `color` defaults to "#3B82F6" if not provided
-- `hideChildren` defaults to false if not provided
+| Field                   | Type   | Required | Description                          |
+|-------------------------|--------|----------|--------------------------------------|
+| `title`                 | string | ✅       | Mind map title                       |
+| `description`           | string | ❌       | Optional description                 |
+| `userId`                | int    | ✅       | Owner user ID                        |
+| `flashCardCollectionId` | int    | ✅       | The collection this map belongs to   |
 
-**Response:**
+**Response:** `201 Created` → `MindMapResponse`  
+**Errors:**
+- `400 Bad Request` → `{ "message": "Title is required" }`
+- `400 Bad Request` → `{ "message": "Valid UserId is required" }`
+- `400 Bad Request` → `{ "message": "Valid FlashCardCollectionId is required" }`
+
+---
+
+### Update Mind Map
+
+```
+PUT /api/MindMap/{id}
+Content-Type: application/json
+```
+
+**Request Body:**
+
 ```json
 {
-  "id": 2,
-  "mindMapId": 1,
-  "flashCardId": 42,
-  "parentNodeId": 1,
-  "positionX": 700,
-  "positionY": 400,
-  "color": "#10B981",
+  "title": "Updated Title",
+  "description": "Updated description",
+  "flashCardCollectionId": 4
+}
+```
+
+| Field                   | Type   | Required | Description                                |
+|-------------------------|--------|----------|--------------------------------------------|
+| `title`                 | string | ✅       | Updated title                              |
+| `description`           | string | ❌       | Updated description                        |
+| `flashCardCollectionId` | int?   | ❌       | Change collection (null = keep current)    |
+
+**Response:** `200 OK` → `MindMapResponse`  
+**Error:** `404 Not Found` → `{ "message": "Mind map not found" }`
+
+---
+
+### Delete Mind Map
+
+Deletes the mind map and **all** its nodes.
+
+```
+DELETE /api/MindMap/{id}
+```
+
+**Response:** `200 OK` → `{ "message": "Mind map deleted successfully" }`  
+**Error:** `404 Not Found` → `{ "message": "Mind map not found" }`
+
+---
+
+## Mind Map Node Endpoints
+
+### Get Node by ID
+
+Returns a single node with its flash card info.
+
+```
+GET /api/MindMap/node/{nodeId}
+```
+
+**Response:** `200 OK` → `MindMapNodeResponse`  
+**Error:** `404 Not Found` → `{ "message": "Node not found" }`
+
+---
+
+### Create Node
+
+Add a single node to a mind map.
+
+```
+POST /api/MindMap/node
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "positionX": 300.0,
+  "positionY": 150.0,
+  "color": "#FF9800",
   "hideChildren": false,
-  "createdAt": "2024-01-15T10:40:00Z",
-  "updatedAt": null
-}
-```
-
----
-
-### 9. Update Node
-**PUT** `/api/mindmap/nodes/{nodeId}`
-
-Updates a node's properties (position, color, parent, hideChildren).
-
-**Parameters:**
-- `nodeId` (path): The node ID
-
-**Request Body (all fields optional):**
-```json
-{
-  "parentNodeId": 3,
-  "positionX": 800,
-  "positionY": 500,
-  "color": "#EF4444",
-  "hideChildren": true
-}
-```
-
-**Notes:**
-- All fields are optional - only provided fields will be updated
-- To make a node a root node, set `parentNodeId` to 0
-- Automatically updates the mind map's `updatedAt` timestamp
-
-**Response:**
-```json
-{
-  "id": 2,
+  "parentNodeId": 10,
   "mindMapId": 1,
-  "flashCardId": 42,
-  "parentNodeId": 3,
-  "positionX": 800,
-  "positionY": 500,
-  "color": "#EF4444",
+  "flashCardId": 44
+}
+```
+
+| Field          | Type    | Required | Description                                      |
+|----------------|---------|----------|--------------------------------------------------|
+| `positionX`    | double  | ✅       | X coordinate for React Flow                      |
+| `positionY`    | double  | ✅       | Y coordinate for React Flow                      |
+| `color`        | string  | ❌       | Node color (default: `#ffffff`)                   |
+| `hideChildren` | bool    | ❌       | Whether children are hidden (default: `false`)    |
+| `parentNodeId` | int?    | ❌       | Parent node ID (`null` for root nodes)            |
+| `mindMapId`    | int     | ✅       | Which mind map this node belongs to               |
+| `flashCardId`  | int     | ✅       | The flash card this node represents               |
+
+**Response:** `201 Created` → `MindMapNodeResponse`  
+**Errors:**
+- `400 Bad Request` → `{ "message": "Valid MindMapId is required" }`
+- `400 Bad Request` → `{ "message": "Valid FlashCardId is required" }`
+
+---
+
+### Update Node
+
+Update a node's position, color, visibility, or parent.
+
+```
+PUT /api/MindMap/node/{nodeId}
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "positionX": 350.0,
+  "positionY": 180.0,
+  "color": "#E91E63",
   "hideChildren": true,
-  "createdAt": "2024-01-15T10:40:00Z",
-  "updatedAt": "2024-01-16T14:20:00Z"
+  "parentNodeId": 10
 }
 ```
+
+| Field          | Type    | Required | Description                                      |
+|----------------|---------|----------|--------------------------------------------------|
+| `positionX`    | double  | ✅       | Updated X position                               |
+| `positionY`    | double  | ✅       | Updated Y position                               |
+| `color`        | string  | ❌       | Updated color                                    |
+| `hideChildren` | bool    | ❌       | Updated hide state                               |
+| `parentNodeId` | int?    | ❌       | Updated parent (`null` to make root)             |
+
+**Response:** `200 OK` → `MindMapNodeResponse`  
+**Error:** `404 Not Found` → `{ "message": "Node not found" }`
 
 ---
 
-### 10. Delete Node
-**DELETE** `/api/mindmap/nodes/{nodeId}`
+### Delete Node
 
-Deletes a node. Child nodes will become root nodes (their `parentNodeId` will be set to null).
+Deletes a node **and all its children recursively**.
 
-**Parameters:**
-- `nodeId` (path): The node ID
-
-**Response:**
-```json
-{
-  "message": "Node deleted successfully"
-}
 ```
+DELETE /api/MindMap/node/{nodeId}
+```
+
+**Response:** `200 OK` → `{ "message": "Node deleted successfully" }`  
+**Error:** `404 Not Found` → `{ "message": "Node not found" }`
 
 ---
 
-## Data Models
+### Save All Nodes (Bulk Save)
 
-### MindMap
-```typescript
+⭐ **Main save endpoint.** The frontend sends the entire node tree; the backend replaces all existing nodes for this mind map. This preserves positions, colors, hideChildren state, and parent relationships.
+
+```
+PUT /api/MindMap/{mindMapId}/nodes
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
 {
-  id: number;
-  name: string;           // Max 200 characters
-  description?: string;   // Max 500 characters
-  userId: number;
-  createdAt: Date;
-  updatedAt?: Date;
-  nodeCount: number;      // Number of nodes in the map
+  "nodes": [
+    {
+      "id": 10,
+      "positionX": 250.0,
+      "positionY": 100.0,
+      "color": "#4CAF50",
+      "hideChildren": false,
+      "parentNodeId": null,
+      "flashCardId": 42
+    },
+    {
+      "id": 11,
+      "positionX": 450.0,
+      "positionY": 200.0,
+      "color": "#2196F3",
+      "hideChildren": false,
+      "parentNodeId": 10,
+      "flashCardId": 43
+    },
+    {
+      "id": null,
+      "positionX": 650.0,
+      "positionY": 300.0,
+      "color": "#FF9800",
+      "hideChildren": false,
+      "parentNodeId": 11,
+      "flashCardId": 44
+    }
+  ]
 }
 ```
 
-### MindMapNode
-```typescript
+| Field (per node)  | Type    | Required | Description                                              |
+|-------------------|---------|----------|----------------------------------------------------------|
+| `id`              | int?    | ❌       | Existing node ID (null for newly created nodes)          |
+| `positionX`       | double  | ✅       | X position                                               |
+| `positionY`       | double  | ✅       | Y position                                               |
+| `color`           | string  | ❌       | Node color                                               |
+| `hideChildren`    | bool    | ❌       | Whether children are hidden                              |
+| `parentNodeId`    | int?    | ❌       | Parent node's **old ID** (backend remaps automatically)  |
+| `flashCardId`     | int     | ✅       | Flash card reference                                     |
+
+**How it works:**
+1. Backend deletes all existing nodes for the mind map
+2. Creates all new nodes from the request
+3. Remaps `parentNodeId` references from old IDs to new IDs
+4. Returns the saved nodes with their new IDs and flash card data
+
+**Response:** `200 OK`
+
+```json
 {
-  id: number;
-  mindMapId: number;
-  flashCardId: number;
-  parentNodeId?: number;  // null for root nodes
-  positionX: number;      // X coordinate on canvas
-  positionY: number;      // Y coordinate on canvas
-  color: string;          // Hex color code (max 50 chars)
-  hideChildren: boolean;  // Whether child nodes are hidden
-  createdAt: Date;
-  updatedAt?: Date;
+  "message": "Mind map nodes saved successfully",
+  "nodes": [ /* MindMapNodeResponse[] */ ]
 }
 ```
 
-### FlashCardInfo (in full mindmap response)
-```typescript
-{
-  id: number;
-  term: string;
-  definition: string;
-  score: number;
-  learnCount: number;
-  collectionId: number;
-  collectionName: string;
-}
-```
+**Error:** `404 Not Found` → `{ "message": "Mind map not found" }`
 
 ---
 
-## Error Responses
+## Frontend Integration Guide (React Flow)
 
-### 401 Unauthorized
-```json
-{
-  "message": "MindMap not found or access denied"
-}
-```
+### Loading a Mind Map
 
-### 404 Not Found
-```json
-{
-  "message": "MindMap not found"
-}
-```
-
-### 400 Bad Request
-```json
-{
-  "message": "Parent node not found or doesn't belong to the same mindmap"
-}
-```
-
-### 500 Internal Server Error
-```json
-{
-  "message": "An error occurred while...",
-  "error": "Error details"
-}
-```
-
----
-
-## Frontend Implementation Notes
-
-### Displaying the MindMap
-1. Use `GET /api/mindmap/{id}/full` to fetch complete mindmap data
-2. Each node contains full flashcard information (term, definition, score, etc.)
-3. Build the tree structure using `parentNodeId` relationships
-4. Render nodes at their `positionX` and `positionY` coordinates
-5. Apply the `color` property to node styling
-6. Hide child nodes if `hideChildren` is true
-
-### Saving Node Positions
-When a user moves nodes around:
 ```javascript
-// Save position for each moved node
-await fetch(`/api/mindmap/nodes/${nodeId}`, {
+// 1. Fetch the full mind map detail
+const response = await fetch(`/api/MindMap/${mindMapId}/detail`, {
+  headers: { Authorization: `Bearer ${token}` }
+});
+const data = await response.json();
+
+// 2. Convert to React Flow nodes
+const rfNodes = data.nodes.map(node => ({
+  id: String(node.id),
+  position: { x: node.positionX, y: node.positionY },
+  data: {
+    label: node.flashCard.term,
+    flashCard: node.flashCard,
+    color: node.color,
+    hideChildren: node.hideChildren,
+    nodeId: node.id,
+    parentNodeId: node.parentNodeId,
+    flashCardId: node.flashCardId
+  },
+  style: { backgroundColor: node.color },
+  type: 'mindMapNode' // your custom node type
+}));
+
+// 3. Build edges from parent-child relationships
+const rfEdges = data.nodes
+  .filter(node => node.parentNodeId !== null)
+  .map(node => ({
+    id: `e${node.parentNodeId}-${node.id}`,
+    source: String(node.parentNodeId),
+    target: String(node.id),
+    type: 'smoothstep'
+  }));
+```
+
+### Saving a Mind Map
+
+```javascript
+// Collect all nodes from React Flow state
+const nodesToSave = rfNodes.map(rfNode => ({
+  id: rfNode.data.nodeId,           // original DB id (null for new nodes)
+  positionX: rfNode.position.x,
+  positionY: rfNode.position.y,
+  color: rfNode.data.color,
+  hideChildren: rfNode.data.hideChildren,
+  parentNodeId: rfNode.data.parentNodeId,
+  flashCardId: rfNode.data.flashCardId
+}));
+
+await fetch(`/api/MindMap/${mindMapId}/nodes`, {
   method: 'PUT',
-  body: JSON.stringify({
-    positionX: newX,
-    positionY: newY
-  })
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`
+  },
+  body: JSON.stringify({ nodes: nodesToSave })
 });
 ```
 
-### Batch Updates
-For multiple node updates (like saving entire mindmap state), make individual PUT requests for each changed node.
+### Key Behaviors
 
-### Adding a New Node
-```javascript
-// User selects a flashcard and position
-await fetch(`/api/mindmap/${mindMapId}/nodes`, {
-  method: 'POST',
-  body: JSON.stringify({
-    flashCardId: selectedFlashCardId,
-    parentNodeId: selectedParentNodeId || null,
-    positionX: clickX,
-    positionY: clickY,
-    color: '#3B82F6'
-  })
-});
+| Feature | How it works |
+|---------|-------------|
+| **Tree structure** | `parentNodeId` defines parent-child. `null` = root node. |
+| **Node position** | `positionX`/`positionY` map to React Flow `position: {x, y}` |
+| **Hide/show children** | `hideChildren` boolean — frontend filters visible nodes |
+| **Node colors** | `color` string (hex) — applied to node style |
+| **Flash card display** | Each node has full `flashCard` object with term, definition, score, timesLearned |
+| **Zoom/pan** | Handled entirely by React Flow — no backend involvement |
+| **Save** | Use `PUT /{mindMapId}/nodes` to save entire state at once |
+
+---
+
+## Entity Relationship Diagram
+
+```
+User (1) ──── (N) MindMap
+FlashCardCollection (1) ──── (N) MindMap
+MindMap (1) ──── (N) MindMapNode
+MindMapNode (0..1) ──── (N) MindMapNode  [self-referencing: parentNodeId]
+FlashCard (1) ──── (N) MindMapNode
 ```
 
 ---
 
-## Tree Structure Example
+## HTTP Status Codes
 
-```
-Root Node (parentNodeId: null)
-├── Child 1 (parentNodeId: root)
-│   ├── Grandchild 1 (parentNodeId: child1)
-│   └── Grandchild 2 (parentNodeId: child1)
-└── Child 2 (parentNodeId: root)
-    └── Grandchild 3 (parentNodeId: child2)
-```
-
-Each node can have multiple children but only one parent.
+| Code | Meaning |
+|------|---------|
+| `200` | Success |
+| `201` | Created |
+| `400` | Bad Request (validation error) |
+| `401` | Unauthorized (missing/invalid JWT) |
+| `404` | Not Found |
+| `500` | Internal Server Error |

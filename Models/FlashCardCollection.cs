@@ -18,5 +18,8 @@ namespace WebAPI.Models
 
         // One collection → many flashcards
         public List<FlashCard> FlashCards { get; set; } = new();
+
+        // One collection → many mind maps
+        public List<MindMap> MindMaps { get; set; } = new();
     }
 }

@@ -1,24 +1,25 @@
 using WebAPI.Models;
-using WebAPI.Models.DTOs.MindMap;
 
-namespace WebAPI.Services.Mindmap
+namespace WebAPI.Services.MindMap;
+
+public interface IMindMapService
 {
-    public interface IMindMapService
-    {
-        // MindMap operations
-        Task<MindMap?> GetMindMapByIdAsync(int mindMapId, int userId);
-        Task<List<MindMap>> GetUserMindMapsAsync(int userId);
-        Task<MindMap> CreateMindMapAsync(MindMap mindMap);
-        Task<MindMap?> UpdateMindMapAsync(int mindMapId, int userId, UpdateMindMapDto dto);
-        Task<bool> DeleteMindMapAsync(int mindMapId, int userId);
-        Task<MindMap?> GetFullMindMapAsync(int mindMapId, int userId);
+    // MindMap CRUD
+    Task<Models.MindMap?> GetMindMapByIdAsync(int id);
+    Task<Models.MindMap?> GetMindMapWithNodesAsync(int id);
+    Task<IEnumerable<Models.MindMap>> GetMindMapsByUserIdAsync(int userId);
+    Task<IEnumerable<Models.MindMap>> GetMindMapsByCollectionIdAsync(int collectionId);
+    Task<Models.MindMap> CreateMindMapAsync(Models.MindMap mindMap);
+    Task<Models.MindMap> UpdateMindMapAsync(Models.MindMap mindMap);
+    Task<bool> DeleteMindMapAsync(int id);
 
-        // MindMapNode operations
-        Task<MindMapNode?> GetNodeByIdAsync(int nodeId, int userId);
-        Task<MindMapNode> CreateNodeAsync(MindMapNode node);
-        Task<MindMapNode?> UpdateNodeAsync(int nodeId, int userId, UpdateMindMapNodeDto dto);
-        Task<bool> DeleteNodeAsync(int nodeId, int userId);
-        Task<List<MindMapNode>> GetNodesByMindMapIdAsync(int mindMapId);
-        Task<bool> ValidateFlashCardAccessAsync(int flashCardId, int userId);
-    }
+    // MindMapNode CRUD
+    Task<MindMapNode?> GetNodeByIdAsync(int id);
+    Task<MindMapNode?> GetNodeWithFlashCardAsync(int id);
+    Task<IEnumerable<MindMapNode>> GetNodesByMindMapIdAsync(int mindMapId);
+    Task<MindMapNode> CreateNodeAsync(MindMapNode node);
+    Task<MindMapNode> UpdateNodeAsync(MindMapNode node);
+    Task<bool> DeleteNodeAsync(int id);
+    Task DeleteNodesByMindMapIdAsync(int mindMapId);
+    Task<IEnumerable<MindMapNode>> CreateNodesAsync(IEnumerable<MindMapNode> nodes);
 }

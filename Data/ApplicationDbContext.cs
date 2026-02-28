@@ -54,9 +54,16 @@ public class ApplicationDbContext : DbContext
         // User → MindMaps
         modelBuilder.Entity<MindMap>()
             .HasOne(m => m.User)
-            .WithMany()
+            .WithMany(u => u.MindMaps)
             .HasForeignKey(m => m.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Collection → MindMaps
+        modelBuilder.Entity<MindMap>()
+            .HasOne(m => m.FlashCardCollection)
+            .WithMany(fc => fc.MindMaps)
+            .HasForeignKey(m => m.FlashCardCollectionId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // MindMap → Nodes
         modelBuilder.Entity<MindMapNode>()
@@ -65,18 +72,18 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(n => n.MindMapId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Self-referencing (node → parent/children)
+        modelBuilder.Entity<MindMapNode>()
+            .HasOne(n => n.ParentNode)
+            .WithMany(n => n.Children)
+            .HasForeignKey(n => n.ParentNodeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Node → FlashCard
         modelBuilder.Entity<MindMapNode>()
             .HasOne(n => n.FlashCard)
             .WithMany()
             .HasForeignKey(n => n.FlashCardId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Self-referencing (node → parent/children)
-        modelBuilder.Entity<MindMapNode>()
-            .HasOne(n => n.ParentNode)
-            .WithMany(n => n.ChildNodes)
-            .HasForeignKey(n => n.ParentNodeId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

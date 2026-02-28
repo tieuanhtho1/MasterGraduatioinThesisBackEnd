@@ -58,7 +58,7 @@ builder.Services.AddScoped<IFlashCardCollectionService, FlashCardCollectionServi
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<WebAPI.Services.LearnSession.ILearnSessionService, WebAPI.Services.LearnSession.LearnSessionService>();
 builder.Services.AddScoped<WebAPI.Services.Analytics.IAnalyticsService, WebAPI.Services.Analytics.AnalyticsService>();
-builder.Services.AddScoped<WebAPI.Services.Mindmap.IMindMapService, WebAPI.Services.Mindmap.MindMapService>();
+builder.Services.AddScoped<WebAPI.Services.MindMap.IMindMapService, WebAPI.Services.MindMap.MindMapService>();
 
 // Register Business Logic Layer
 builder.Services.AddScoped<IUserBusinessLogic, UserBusinessLogic>();
@@ -67,7 +67,7 @@ builder.Services.AddScoped<IFlashCardCollectionBusinessLogic, FlashCardCollectio
 builder.Services.AddScoped<IAuthBusinessLogic, AuthBusinessLogic>();
 builder.Services.AddScoped<WebAPI.BusinessLogic.LearnSession.ILearnSessionBusinessLogic, WebAPI.BusinessLogic.LearnSession.LearnSessionBusinessLogic>();
 builder.Services.AddScoped<WebAPI.BusinessLogic.Analytics.IAnalyticsBusinessLogic, WebAPI.BusinessLogic.Analytics.AnalyticsBusinessLogic>();
-builder.Services.AddScoped<WebAPI.BusinessLogic.Mindmap.IMindMapBusinessLogic, WebAPI.BusinessLogic.Mindmap.MindMapBusinessLogic>();
+builder.Services.AddScoped<WebAPI.BusinessLogic.MindMap.IMindMapBusinessLogic, WebAPI.BusinessLogic.MindMap.MindMapBusinessLogic>();
 
 // Add Controllers
 builder.Services.AddControllers();

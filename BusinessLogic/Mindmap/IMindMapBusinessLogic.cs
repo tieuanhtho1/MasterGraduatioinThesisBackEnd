@@ -1,21 +1,23 @@
+using WebAPI.Models;
 using WebAPI.Models.DTOs.MindMap;
 
-namespace WebAPI.BusinessLogic.Mindmap
-{
-    public interface IMindMapBusinessLogic
-    {
-        // MindMap operations
-        Task<MindMapResponseDto?> GetMindMapByIdAsync(int mindMapId, int userId);
-        Task<List<MindMapResponseDto>> GetUserMindMapsAsync(int userId);
-        Task<MindMapResponseDto> CreateMindMapAsync(CreateMindMapDto dto, int userId);
-        Task<MindMapResponseDto?> UpdateMindMapAsync(int mindMapId, UpdateMindMapDto dto, int userId);
-        Task<bool> DeleteMindMapAsync(int mindMapId, int userId);
-        Task<FullMindMapResponseDto?> GetFullMindMapAsync(int mindMapId, int userId);
+namespace WebAPI.BusinessLogic.MindMap;
 
-        // MindMapNode operations
-        Task<MindMapNodeResponseDto?> GetNodeByIdAsync(int nodeId, int userId);
-        Task<MindMapNodeResponseDto> CreateNodeAsync(int mindMapId, CreateMindMapNodeDto dto, int userId);
-        Task<MindMapNodeResponseDto?> UpdateNodeAsync(int nodeId, UpdateMindMapNodeDto dto, int userId);
-        Task<bool> DeleteNodeAsync(int nodeId, int userId);
-    }
+public interface IMindMapBusinessLogic
+{
+    // MindMap operations
+    Task<Models.MindMap?> GetMindMapByIdAsync(int id);
+    Task<Models.MindMap?> GetMindMapWithNodesAsync(int id);
+    Task<IEnumerable<Models.MindMap>> GetMindMapsByUserIdAsync(int userId);
+    Task<IEnumerable<Models.MindMap>> GetMindMapsByCollectionIdAsync(int collectionId);
+    Task<Models.MindMap?> CreateMindMapAsync(Models.MindMap mindMap);
+    Task<Models.MindMap?> UpdateMindMapAsync(int id, Models.MindMap mindMap);
+    Task<bool> DeleteMindMapAsync(int id);
+
+    // Node operations
+    Task<MindMapNode?> GetNodeByIdAsync(int id);
+    Task<MindMapNodeResponse?> CreateNodeAsync(MindMapNode node);
+    Task<MindMapNodeResponse?> UpdateNodeAsync(int id, UpdateMindMapNodeRequest request);
+    Task<bool> DeleteNodeAsync(int id);
+    Task<IEnumerable<MindMapNodeResponse>> SaveMindMapNodesAsync(int mindMapId, SaveMindMapNodesRequest request);
 }

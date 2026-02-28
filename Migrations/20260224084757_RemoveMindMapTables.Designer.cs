@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebAPI.Data;
 
@@ -11,9 +12,11 @@ using WebAPI.Data;
 namespace WebAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260224084757_RemoveMindMapTables")]
+    partial class RemoveMindMapTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -83,84 +86,6 @@ namespace WebAPI.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("FlashCardCollections");
-                });
-
-            modelBuilder.Entity("WebAPI.Models.MindMap", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("FlashCardCollectionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FlashCardCollectionId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("MindMaps");
-                });
-
-            modelBuilder.Entity("WebAPI.Models.MindMapNode", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Color")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("FlashCardId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("HideChildren")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MindMapId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ParentNodeId")
-                        .HasColumnType("int");
-
-                    b.Property<double>("PositionX")
-                        .HasColumnType("float");
-
-                    b.Property<double>("PositionY")
-                        .HasColumnType("float");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FlashCardId");
-
-                    b.HasIndex("MindMapId");
-
-                    b.HasIndex("ParentNodeId");
-
-                    b.ToTable("MindMapNodes");
                 });
 
             modelBuilder.Entity("WebAPI.Models.User", b =>
@@ -236,75 +161,16 @@ namespace WebAPI.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("WebAPI.Models.MindMap", b =>
-                {
-                    b.HasOne("WebAPI.Models.FlashCardCollection", "FlashCardCollection")
-                        .WithMany("MindMaps")
-                        .HasForeignKey("FlashCardCollectionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WebAPI.Models.User", "User")
-                        .WithMany("MindMaps")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FlashCardCollection");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("WebAPI.Models.MindMapNode", b =>
-                {
-                    b.HasOne("WebAPI.Models.FlashCard", "FlashCard")
-                        .WithMany()
-                        .HasForeignKey("FlashCardId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("WebAPI.Models.MindMap", "MindMap")
-                        .WithMany("Nodes")
-                        .HasForeignKey("MindMapId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("WebAPI.Models.MindMapNode", "ParentNode")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentNodeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("FlashCard");
-
-                    b.Navigation("MindMap");
-
-                    b.Navigation("ParentNode");
-                });
-
             modelBuilder.Entity("WebAPI.Models.FlashCardCollection", b =>
                 {
                     b.Navigation("Children");
 
                     b.Navigation("FlashCards");
-
-                    b.Navigation("MindMaps");
-                });
-
-            modelBuilder.Entity("WebAPI.Models.MindMap", b =>
-                {
-                    b.Navigation("Nodes");
-                });
-
-            modelBuilder.Entity("WebAPI.Models.MindMapNode", b =>
-                {
-                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("WebAPI.Models.User", b =>
                 {
                     b.Navigation("FlashCardCollections");
-
-                    b.Navigation("MindMaps");
                 });
 #pragma warning restore 612, 618
         }

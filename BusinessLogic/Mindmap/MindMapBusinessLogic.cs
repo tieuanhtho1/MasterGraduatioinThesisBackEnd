@@ -1,205 +1,259 @@
 using WebAPI.Models;
 using WebAPI.Models.DTOs.MindMap;
-using WebAPI.Services.Mindmap;
+using WebAPI.Services.MindMap;
 
-namespace WebAPI.BusinessLogic.Mindmap
+namespace WebAPI.BusinessLogic.MindMap;
+
+public class MindMapBusinessLogic : IMindMapBusinessLogic
 {
-    public class MindMapBusinessLogic : IMindMapBusinessLogic
+    private readonly IMindMapService _mindMapService;
+
+    public MindMapBusinessLogic(IMindMapService mindMapService)
     {
-        private readonly IMindMapService _mindMapService;
+        _mindMapService = mindMapService;
+    }
 
-        public MindMapBusinessLogic(IMindMapService mindMapService)
+    // ──────────────── MindMap ────────────────
+
+    public async Task<Models.MindMap?> GetMindMapByIdAsync(int id)
+    {
+        return await _mindMapService.GetMindMapByIdAsync(id);
+    }
+
+    public async Task<Models.MindMap?> GetMindMapWithNodesAsync(int id)
+    {
+        return await _mindMapService.GetMindMapWithNodesAsync(id);
+    }
+
+    public async Task<IEnumerable<Models.MindMap>> GetMindMapsByUserIdAsync(int userId)
+    {
+        return await _mindMapService.GetMindMapsByUserIdAsync(userId);
+    }
+
+    public async Task<IEnumerable<Models.MindMap>> GetMindMapsByCollectionIdAsync(int collectionId)
+    {
+        return await _mindMapService.GetMindMapsByCollectionIdAsync(collectionId);
+    }
+
+    public async Task<Models.MindMap?> CreateMindMapAsync(Models.MindMap mindMap)
+    {
+        if (string.IsNullOrWhiteSpace(mindMap.Title))
+            return null;
+
+        mindMap.CreatedAt = DateTime.UtcNow;
+        mindMap.UpdatedAt = DateTime.UtcNow;
+
+        return await _mindMapService.CreateMindMapAsync(mindMap);
+    }
+
+    public async Task<Models.MindMap?> UpdateMindMapAsync(int id, Models.MindMap mindMap)
+    {
+        var existing = await _mindMapService.GetMindMapByIdAsync(id);
+        if (existing == null)
+            return null;
+
+        existing.Title = mindMap.Title;
+        existing.Description = mindMap.Description;
+        existing.UpdatedAt = DateTime.UtcNow;
+
+        if (mindMap.FlashCardCollectionId > 0)
+            existing.FlashCardCollectionId = mindMap.FlashCardCollectionId;
+
+        return await _mindMapService.UpdateMindMapAsync(existing);
+    }
+
+    public async Task<bool> DeleteMindMapAsync(int id)
+    {
+        var mindMap = await _mindMapService.GetMindMapByIdAsync(id);
+        if (mindMap == null)
+            return false;
+
+        return await _mindMapService.DeleteMindMapAsync(id);
+    }
+
+    // ──────────────── MindMapNode ────────────────
+
+    public async Task<MindMapNode?> GetNodeByIdAsync(int id)
+    {
+        return await _mindMapService.GetNodeWithFlashCardAsync(id);
+    }
+
+    public async Task<MindMapNodeResponse?> CreateNodeAsync(MindMapNode node)
+    {
+        if (node.FlashCardId <= 0 || node.MindMapId <= 0)
+            return null;
+
+        var created = await _mindMapService.CreateNodeAsync(node);
+
+        // Update mind map timestamp
+        var mindMap = await _mindMapService.GetMindMapByIdAsync(node.MindMapId);
+        if (mindMap != null)
         {
-            _mindMapService = mindMapService;
+            mindMap.UpdatedAt = DateTime.UtcNow;
+            await _mindMapService.UpdateMindMapAsync(mindMap);
         }
 
-        // MindMap operations
-        public async Task<MindMapResponseDto?> GetMindMapByIdAsync(int mindMapId, int userId)
-        {
-            var mindMap = await _mindMapService.GetMindMapByIdAsync(mindMapId, userId);
-            if (mindMap == null) return null;
+        return MapNodeToResponse(created);
+    }
 
-            return MapToResponseDto(mindMap);
+    public async Task<MindMapNodeResponse?> UpdateNodeAsync(int id, UpdateMindMapNodeRequest request)
+    {
+        var existing = await _mindMapService.GetNodeByIdAsync(id);
+        if (existing == null)
+            return null;
+
+        existing.PositionX = request.PositionX;
+        existing.PositionY = request.PositionY;
+        existing.Color = request.Color;
+        existing.HideChildren = request.HideChildren;
+        existing.ParentNodeId = request.ParentNodeId;
+
+        var updated = await _mindMapService.UpdateNodeAsync(existing);
+
+        // Update mind map timestamp
+        var mindMap = await _mindMapService.GetMindMapByIdAsync(existing.MindMapId);
+        if (mindMap != null)
+        {
+            mindMap.UpdatedAt = DateTime.UtcNow;
+            await _mindMapService.UpdateMindMapAsync(mindMap);
         }
 
-        public async Task<List<MindMapResponseDto>> GetUserMindMapsAsync(int userId)
-        {
-            var mindMaps = await _mindMapService.GetUserMindMapsAsync(userId);
-            return mindMaps.Select(MapToResponseDto).ToList();
-        }
+        return MapNodeToResponse(updated);
+    }
 
-        public async Task<MindMapResponseDto> CreateMindMapAsync(CreateMindMapDto dto, int userId)
+    public async Task<bool> DeleteNodeAsync(int id)
+    {
+        var node = await _mindMapService.GetNodeByIdAsync(id);
+        if (node == null)
+            return false;
+
+        var mindMapId = node.MindMapId;
+        var result = await _mindMapService.DeleteNodeAsync(id);
+
+        if (result)
         {
-            var mindMap = new MindMap
+            // Update mind map timestamp
+            var mindMap = await _mindMapService.GetMindMapByIdAsync(mindMapId);
+            if (mindMap != null)
             {
-                Name = dto.Name,
-                Description = dto.Description,
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            var createdMindMap = await _mindMapService.CreateMindMapAsync(mindMap);
-            return MapToResponseDto(createdMindMap);
-        }
-
-        public async Task<MindMapResponseDto?> UpdateMindMapAsync(int mindMapId, UpdateMindMapDto dto, int userId)
-        {
-            var updatedMindMap = await _mindMapService.UpdateMindMapAsync(mindMapId, userId, dto);
-            if (updatedMindMap == null) return null;
-
-            return MapToResponseDto(updatedMindMap);
-        }
-
-        public async Task<bool> DeleteMindMapAsync(int mindMapId, int userId)
-        {
-            return await _mindMapService.DeleteMindMapAsync(mindMapId, userId);
-        }
-
-        public async Task<FullMindMapResponseDto?> GetFullMindMapAsync(int mindMapId, int userId)
-        {
-            var mindMap = await _mindMapService.GetFullMindMapAsync(mindMapId, userId);
-            if (mindMap == null) return null;
-
-            return new FullMindMapResponseDto
-            {
-                Id = mindMap.Id,
-                Name = mindMap.Name,
-                Description = mindMap.Description,
-                UserId = mindMap.UserId,
-                CreatedAt = mindMap.CreatedAt,
-                UpdatedAt = mindMap.UpdatedAt,
-                Nodes = mindMap.Nodes.Select(n => new MindMapNodeWithFlashCardDto
-                {
-                    Id = n.Id,
-                    MindMapId = n.MindMapId,
-                    ParentNodeId = n.ParentNodeId,
-                    PositionX = n.PositionX,
-                    PositionY = n.PositionY,
-                    Color = n.Color,
-                    HideChildren = n.HideChildren,
-                    CreatedAt = n.CreatedAt,
-                    UpdatedAt = n.UpdatedAt,
-                    FlashCard = new FlashCardInfo
-                    {
-                        Id = n.FlashCard.Id,
-                        Term = n.FlashCard.Term,
-                        Definition = n.FlashCard.Definition,
-                        Score = n.FlashCard.Score,
-                        LearnCount = n.FlashCard.TimesLearned,
-                        CollectionId = n.FlashCard.FlashCardCollectionId,
-                        CollectionName = n.FlashCard.FlashCardCollection.Title
-                    }
-                }).ToList()
-            };
-        }
-
-        // MindMapNode operations
-        public async Task<MindMapNodeResponseDto?> GetNodeByIdAsync(int nodeId, int userId)
-        {
-            var node = await _mindMapService.GetNodeByIdAsync(nodeId, userId);
-            if (node == null) return null;
-
-            return MapToNodeResponseDto(node);
-        }
-
-        public async Task<MindMapNodeResponseDto> CreateNodeAsync(int mindMapId, CreateMindMapNodeDto dto, int userId)
-        {
-            // Validate mindmap exists and belongs to user
-            var mindMap = await _mindMapService.GetMindMapByIdAsync(mindMapId, userId);
-            if (mindMap == null)
-                throw new UnauthorizedAccessException("MindMap not found or access denied");
-
-            // Validate flashcard exists and belongs to user
-            var hasAccess = await _mindMapService.ValidateFlashCardAccessAsync(dto.FlashCardId, userId);
-            if (!hasAccess)
-                throw new UnauthorizedAccessException("FlashCard not found or access denied");
-
-            // Validate parent node if provided
-            if (dto.ParentNodeId.HasValue)
-            {
-                var parentNode = await _mindMapService.GetNodeByIdAsync(dto.ParentNodeId.Value, userId);
-                if (parentNode == null || parentNode.MindMapId != mindMapId)
-                    throw new InvalidOperationException("Parent node not found or doesn't belong to the same mindmap");
+                mindMap.UpdatedAt = DateTime.UtcNow;
+                await _mindMapService.UpdateMindMapAsync(mindMap);
             }
+        }
 
+        return result;
+    }
+
+    /// <summary>
+    /// Bulk save all nodes for a mind map.
+    /// Replaces all existing nodes with the provided set.
+    /// This is the main save endpoint — frontend sends the entire node tree.
+    /// </summary>
+    public async Task<IEnumerable<MindMapNodeResponse>> SaveMindMapNodesAsync(int mindMapId, SaveMindMapNodesRequest request)
+    {
+        var mindMap = await _mindMapService.GetMindMapByIdAsync(mindMapId);
+        if (mindMap == null)
+            return Enumerable.Empty<MindMapNodeResponse>();
+
+        // Delete all existing nodes for this mind map
+        await _mindMapService.DeleteNodesByMindMapIdAsync(mindMapId);
+
+        if (request.Nodes == null || !request.Nodes.Any())
+        {
+            mindMap.UpdatedAt = DateTime.UtcNow;
+            await _mindMapService.UpdateMindMapAsync(mindMap);
+            return Enumerable.Empty<MindMapNodeResponse>();
+        }
+
+        // Build a map from client-side temp IDs to track parent references
+        // The frontend might send ParentNodeId referencing an Id from the previous save.
+        // We need to handle the mapping of old IDs to new IDs.
+        var oldIdToNewNode = new Dictionary<int, MindMapNode>();
+        var nodesToCreate = new List<(MindMapNode node, int? oldParentId)>();
+
+        foreach (var item in request.Nodes)
+        {
             var node = new MindMapNode
             {
+                PositionX = item.PositionX,
+                PositionY = item.PositionY,
+                Color = item.Color,
+                HideChildren = item.HideChildren,
                 MindMapId = mindMapId,
-                FlashCardId = dto.FlashCardId,
-                ParentNodeId = dto.ParentNodeId,
-                PositionX = dto.PositionX,
-                PositionY = dto.PositionY,
-                Color = dto.Color,
-                HideChildren = dto.HideChildren,
-                CreatedAt = DateTime.UtcNow
+                FlashCardId = item.FlashCardId,
+                ParentNodeId = null // Will be set after all nodes are created
             };
 
-            var createdNode = await _mindMapService.CreateNodeAsync(node);
-            
-            // Update mindmap's UpdatedAt
-            await _mindMapService.UpdateMindMapAsync(mindMapId, userId, new UpdateMindMapDto());
+            nodesToCreate.Add((node, item.ParentNodeId));
 
-            return MapToNodeResponseDto(createdNode);
-        }
-
-        public async Task<MindMapNodeResponseDto?> UpdateNodeAsync(int nodeId, UpdateMindMapNodeDto dto, int userId)
-        {
-            var updatedNode = await _mindMapService.UpdateNodeAsync(nodeId, userId, dto);
-            if (updatedNode == null) return null;
-
-            // Update mindmap's UpdatedAt
-            await _mindMapService.UpdateMindMapAsync(updatedNode.MindMapId, userId, new UpdateMindMapDto());
-
-            return MapToNodeResponseDto(updatedNode);
-        }
-
-        public async Task<bool> DeleteNodeAsync(int nodeId, int userId)
-        {
-            var node = await _mindMapService.GetNodeByIdAsync(nodeId, userId);
-            if (node == null) return false;
-
-            var mindMapId = node.MindMapId;
-            var result = await _mindMapService.DeleteNodeAsync(nodeId, userId);
-
-            if (result)
+            if (item.Id.HasValue && item.Id.Value > 0)
             {
-                // Update mindmap's UpdatedAt
-                await _mindMapService.UpdateMindMapAsync(mindMapId, userId, new UpdateMindMapDto());
+                oldIdToNewNode[item.Id.Value] = node;
             }
-
-            return result;
         }
 
-        // Helper methods
-        private MindMapResponseDto MapToResponseDto(MindMap mindMap)
+        // First pass: create all nodes without parent references
+        var createdNodes = new List<MindMapNode>();
+        foreach (var (node, _) in nodesToCreate)
         {
-            return new MindMapResponseDto
-            {
-                Id = mindMap.Id,
-                Name = mindMap.Name,
-                Description = mindMap.Description,
-                UserId = mindMap.UserId,
-                CreatedAt = mindMap.CreatedAt,
-                UpdatedAt = mindMap.UpdatedAt,
-                NodeCount = mindMap.Nodes?.Count ?? 0
-            };
+            var created = await _mindMapService.CreateNodeAsync(node);
+            createdNodes.Add(created);
         }
 
-        private MindMapNodeResponseDto MapToNodeResponseDto(MindMapNode node)
+        // Build mapping from old IDs to new IDs
+        var oldToNewIdMap = new Dictionary<int, int>();
+        for (int i = 0; i < nodesToCreate.Count; i++)
         {
-            return new MindMapNodeResponseDto
+            var item = request.Nodes[i];
+            if (item.Id.HasValue && item.Id.Value > 0)
             {
-                Id = node.Id,
-                MindMapId = node.MindMapId,
-                FlashCardId = node.FlashCardId,
-                ParentNodeId = node.ParentNodeId,
-                PositionX = node.PositionX,
-                PositionY = node.PositionY,
-                Color = node.Color,
-                HideChildren = node.HideChildren,
-                CreatedAt = node.CreatedAt,
-                UpdatedAt = node.UpdatedAt
-            };
+                oldToNewIdMap[item.Id.Value] = createdNodes[i].Id;
+            }
         }
+
+        // Second pass: set parent references using the new IDs
+        for (int i = 0; i < nodesToCreate.Count; i++)
+        {
+            var (_, oldParentId) = nodesToCreate[i];
+            if (oldParentId.HasValue && oldToNewIdMap.ContainsKey(oldParentId.Value))
+            {
+                createdNodes[i].ParentNodeId = oldToNewIdMap[oldParentId.Value];
+                await _mindMapService.UpdateNodeAsync(createdNodes[i]);
+            }
+        }
+
+        // Update mind map timestamp
+        mindMap.UpdatedAt = DateTime.UtcNow;
+        await _mindMapService.UpdateMindMapAsync(mindMap);
+
+        // Reload nodes with flash card info
+        var finalNodes = await _mindMapService.GetNodesByMindMapIdAsync(mindMapId);
+        return finalNodes.Select(MapNodeToResponse);
+    }
+
+    // ──────────────── Helpers ────────────────
+
+    private static MindMapNodeResponse MapNodeToResponse(MindMapNode node)
+    {
+        return new MindMapNodeResponse
+        {
+            Id = node.Id,
+            PositionX = node.PositionX,
+            PositionY = node.PositionY,
+            Color = node.Color,
+            HideChildren = node.HideChildren,
+            ParentNodeId = node.ParentNodeId,
+            MindMapId = node.MindMapId,
+            FlashCardId = node.FlashCardId,
+            FlashCard = node.FlashCard != null ? new FlashCardInfo
+            {
+                Id = node.FlashCard.Id,
+                Term = node.FlashCard.Term,
+                Definition = node.FlashCard.Definition,
+                Score = node.FlashCard.Score,
+                TimesLearned = node.FlashCard.TimesLearned,
+                FlashCardCollectionId = node.FlashCard.FlashCardCollectionId
+            } : null!
+        };
     }
 }
