@@ -25,6 +25,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddCors();
+builder.Services.AddHttpClient();
 
 // Configure Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -59,6 +60,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<WebAPI.Services.LearnSession.ILearnSessionService, WebAPI.Services.LearnSession.LearnSessionService>();
 builder.Services.AddScoped<WebAPI.Services.Analytics.IAnalyticsService, WebAPI.Services.Analytics.AnalyticsService>();
 builder.Services.AddScoped<WebAPI.Services.MindMap.IMindMapService, WebAPI.Services.MindMap.MindMapService>();
+builder.Services.AddScoped<WebAPI.Services.AIGeneration.IDocumentParserService, WebAPI.Services.AIGeneration.DocumentParserService>();
+builder.Services.AddScoped<WebAPI.Services.AIGeneration.IAIService, WebAPI.Services.AIGeneration.AIService>();
+builder.Services.AddScoped<WebAPI.Services.UserApiKey.IUserApiKeyService, WebAPI.Services.UserApiKey.UserApiKeyService>();
 
 // Register Business Logic Layer
 builder.Services.AddScoped<IUserBusinessLogic, UserBusinessLogic>();
@@ -68,6 +72,8 @@ builder.Services.AddScoped<IAuthBusinessLogic, AuthBusinessLogic>();
 builder.Services.AddScoped<WebAPI.BusinessLogic.LearnSession.ILearnSessionBusinessLogic, WebAPI.BusinessLogic.LearnSession.LearnSessionBusinessLogic>();
 builder.Services.AddScoped<WebAPI.BusinessLogic.Analytics.IAnalyticsBusinessLogic, WebAPI.BusinessLogic.Analytics.AnalyticsBusinessLogic>();
 builder.Services.AddScoped<WebAPI.BusinessLogic.MindMap.IMindMapBusinessLogic, WebAPI.BusinessLogic.MindMap.MindMapBusinessLogic>();
+builder.Services.AddScoped<WebAPI.BusinessLogic.AIGeneration.IAIGenerationBusinessLogic, WebAPI.BusinessLogic.AIGeneration.AIGenerationBusinessLogic>();
+builder.Services.AddScoped<WebAPI.BusinessLogic.UserApiKey.IUserApiKeyBusinessLogic, WebAPI.BusinessLogic.UserApiKey.UserApiKeyBusinessLogic>();
 
 // Add Controllers
 builder.Services.AddControllers();

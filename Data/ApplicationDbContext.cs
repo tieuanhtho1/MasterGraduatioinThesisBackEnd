@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<MindMap> MindMaps { get; set; }
     public DbSet<MindMapNode> MindMapNodes { get; set; }
     public DbSet<MindMapEdge> MindMapEdges { get; set; }
+    public DbSet<UserApiKey> UserApiKeys { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -100,5 +101,19 @@ public class ApplicationDbContext : DbContext
             .WithMany(n => n.TargetEdges)
             .HasForeignKey(e => e.TargetNodeId)
             .OnDelete(DeleteBehavior.NoAction);
+
+        // User → ApiKeys
+        modelBuilder.Entity<UserApiKey>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Provider).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ApiKey).IsRequired();
+            entity.HasIndex(e => new { e.UserId, e.Provider }).IsUnique();
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.ApiKeys)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }

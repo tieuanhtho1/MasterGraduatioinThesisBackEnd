@@ -15,4 +15,7 @@ public class User
 
     // One user → Many mind maps
     public List<MindMap> MindMaps { get; set; } = new();
+
+    // One user → Many API keys
+    public List<UserApiKey> ApiKeys { get; set; } = new();
 }
