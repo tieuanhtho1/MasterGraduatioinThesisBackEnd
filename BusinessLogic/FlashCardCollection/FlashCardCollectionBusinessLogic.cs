@@ -56,6 +56,46 @@ public class FlashCardCollectionBusinessLogic : IFlashCardCollectionBusinessLogi
         return await _collectionService.UpdateCollectionAsync(existing);
     }
 
+    public async Task<Models.FlashCardCollection?> UpdateCollectionParentAsync(int id, int? parentId)
+    {
+        var existing = await _collectionService.GetCollectionByIdAsync(id);
+        if (existing == null)
+        {
+            return null;
+        }
+
+        // Cannot set a collection as its own parent
+        if (parentId.HasValue && parentId.Value == id)
+        {
+            return null;
+        }
+
+        // Validate that the new parent exists
+        if (parentId.HasValue)
+        {
+            var parentCollection = await _collectionService.GetCollectionByIdAsync(parentId.Value);
+            if (parentCollection == null)
+            {
+                return null;
+            }
+
+            // Prevent circular reference: the new parent must not be a descendant of this collection
+            var currentParentId = parentCollection.ParentId;
+            while (currentParentId.HasValue)
+            {
+                if (currentParentId.Value == id)
+                {
+                    return null; // Circular reference detected
+                }
+                var ancestor = await _collectionService.GetCollectionByIdAsync(currentParentId.Value);
+                currentParentId = ancestor?.ParentId;
+            }
+        }
+
+        existing.ParentId = parentId;
+        return await _collectionService.UpdateCollectionAsync(existing);
+    }
+
     public async Task<bool> DeleteCollectionAsync(int id)
     {
         // Business logic: Check if collection can be deleted

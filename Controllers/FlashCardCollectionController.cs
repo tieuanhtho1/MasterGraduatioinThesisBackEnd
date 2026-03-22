@@ -189,6 +189,35 @@ public class FlashCardCollectionController : ControllerBase
     }
 
     /// <summary>
+    /// Update a collection's parent (move collection)
+    /// </summary>
+    [HttpPatch("{id}/parent")]
+    public async Task<IActionResult> UpdateCollectionParent(int id, [FromBody] UpdateCollectionParentRequest request)
+    {
+        var result = await _collectionBusinessLogic.UpdateCollectionParentAsync(id, request.ParentId);
+
+        if (result == null)
+        {
+            return BadRequest(new { message = "Failed to update parent. Collection not found, parent not found, or circular reference detected." });
+        }
+
+        var totalFlashCardCount = await _collectionBusinessLogic.GetTotalFlashCardCountAsync(result.Id);
+
+        var response = new FlashCardCollectionResponse
+        {
+            Id = result.Id,
+            UserId = result.UserId,
+            ParentId = result.ParentId,
+            Title = result.Title,
+            Description = result.Description,
+            FlashCardCount = totalFlashCardCount,
+            ChildrenCount = result.Children?.Count ?? 0
+        };
+
+        return Ok(response);
+    }
+
+    /// <summary>
     /// Delete a collection
     /// </summary>
     [HttpDelete("{id}")]

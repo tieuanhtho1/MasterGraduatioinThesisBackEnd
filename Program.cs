@@ -74,6 +74,7 @@ builder.Services.AddScoped<WebAPI.BusinessLogic.Analytics.IAnalyticsBusinessLogi
 builder.Services.AddScoped<WebAPI.BusinessLogic.MindMap.IMindMapBusinessLogic, WebAPI.BusinessLogic.MindMap.MindMapBusinessLogic>();
 builder.Services.AddScoped<WebAPI.BusinessLogic.AIGeneration.IAIGenerationBusinessLogic, WebAPI.BusinessLogic.AIGeneration.AIGenerationBusinessLogic>();
 builder.Services.AddScoped<WebAPI.BusinessLogic.UserApiKey.IUserApiKeyBusinessLogic, WebAPI.BusinessLogic.UserApiKey.UserApiKeyBusinessLogic>();
+builder.Services.AddScoped<WebAPI.BusinessLogic.Admin.IAdminBusinessLogic, WebAPI.BusinessLogic.Admin.AdminBusinessLogic>();
 
 // Add Controllers
 builder.Services.AddControllers();

@@ -22,6 +22,22 @@ public class UserApiKeyService : IUserApiKeyService
             .ToListAsync();
     }
 
+    public async Task<List<Models.UserApiKey>> GetAllAsync()
+    {
+        return await _context.UserApiKeys
+            .Include(k => k.User)
+            .OrderBy(k => k.UserId)
+            .ThenBy(k => k.Provider)
+            .ToListAsync();
+    }
+
+    public async Task<Models.UserApiKey?> GetByIdAsync(int id)
+    {
+        return await _context.UserApiKeys
+            .Include(k => k.User)
+            .FirstOrDefaultAsync(k => k.Id == id);
+    }
+
     public async Task<Models.UserApiKey?> GetByUserAndProviderAsync(int userId, string provider)
     {
         return await _context.UserApiKeys

@@ -9,6 +9,7 @@ public interface IFlashCardCollectionBusinessLogic
     Task<IEnumerable<Models.FlashCardCollection>> GetChildrenByParentIdAsync(int parentId);
     Task<Models.FlashCardCollection?> CreateCollectionAsync(Models.FlashCardCollection collection);
     Task<Models.FlashCardCollection?> UpdateCollectionAsync(int id, Models.FlashCardCollection collection);
+    Task<Models.FlashCardCollection?> UpdateCollectionParentAsync(int id, int? parentId);
     Task<bool> DeleteCollectionAsync(int id);
     Task<int> GetTotalFlashCardCountAsync(int collectionId);
 }
